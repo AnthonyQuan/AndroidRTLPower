@@ -36,6 +36,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -52,9 +53,19 @@ import marto.rtl_tcp_andro.R;
 
 public class StreamActivity extends FragmentActivity implements Log.Callback {
 
-	private static final int START_REQ_CODE = 1;
-	
-	private BinaryRunnerService service;
+	boolean isRunning=false;
+    private static final int START_REQ_CODE = 1;
+    private BinaryRunnerService service;
+
+
+
+    // loads the c library
+    static {
+        System.loadLibrary("rtlSdrAndroid");
+    }
+
+    //c method
+    public native String stringFromJNI(String[] argv);
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -66,17 +77,59 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
 
 	public void RunButtonOnClick(View view)
     {
-        EditText freqLower = (EditText) findViewById(R.id.freqLower);
-        EditText freqHigher = (EditText) findViewById(R.id.freqHigher);
-        EditText bins = (EditText) findViewById(R.id.bins);
-        EditText fileName = (EditText) findViewById(R.id.fileName);
+        Thread workerThread=null;
+        final String[] argv = {"-f", "88M:108M:125k", "/sdcard/filename.csv"};
+
+        //define a new runnable class which defines what the worker thread does
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                // load library already done at the top
+
+                //call c method
+                stringFromJNI(argv);
+            }
+        };
+
+
+        if (isRunning==true) //program is already running, lets  stop it
+        {
+            isRunning=false; //change status of program
+            ((Button) findViewById(R.id.button)).setText("Start");
+
+        }
+        else //program is not running, lets start it
+        {
+            isRunning=true;
+            ((Button) findViewById(R.id.button)).setText("Stop");
+            //start background thread to run RTL Power
+            EditText freqLower = (EditText) findViewById(R.id.freqLower);
+            EditText freqHigher = (EditText) findViewById(R.id.freqHigher);
+            EditText bins = (EditText) findViewById(R.id.bins);
+            EditText fileName = (EditText) findViewById(R.id.fileName);
+            TextView textView = (TextView) findViewById(R.id.textView);
+
+            //print arguments to text view
+            textView.append("Lower Frequency Bound: " + freqLower.getText().toString() + "\n");
+            textView.append("Higher Frequency Bound: " + freqHigher.getText().toString() + "\n");
+            textView.append("Number of Bins: " + bins.getText().toString() + "\n");
+            textView.append("File Name: " + fileName.getText().toString()+ "\n");
+
+            //put my args into a string array
+
+
+            //start calling rtl power in another thread
+            workerThread = new Thread(runnable);
+            workerThread.start();
+        }
+    }
+
+
+    public void RefreshLogs(View view)
+    {
+        //update what the user sees with the logs gathered from RTL Power, will need to revisit if this works
         TextView textView = (TextView) findViewById(R.id.textView);
-
-        textView.append("Lower Frequency Bound: " + freqLower.getText().toString() + "\n");
-        textView.append("Higher Frequency Bound: " + freqHigher.getText().toString() + "\n");
-        textView.append("Number of Bins: " + bins.getText().toString() + "\n");
-        textView.append("File Name: " + fileName.getText().toString());
-
+        textView.setText(Log.getFullLog());
     }
 
 	public void showDialog(final DialogManager.dialogs id, final String ... args) {
@@ -113,6 +166,5 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
 	
 	@Override
 	public void onChanged() {
-
 	}
 }

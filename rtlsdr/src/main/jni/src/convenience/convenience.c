@@ -189,17 +189,7 @@ int verbose_offset_tuning(rtlsdr_dev_t *dev)
 	return r;
 }
 
-int verbose_auto_gain(rtlsdr_dev_t *dev)
-{
-	int r;
-	r = rtlsdr_set_tuner_gain_mode(dev, 0);
-	if (r != 0) {
-		fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
-	} else {
-		fprintf(stderr, "Tuner gain set to automatic.\n");
-	}
-	return r;
-}
+
 
 int verbose_gain_set(rtlsdr_dev_t *dev, int gain)
 {

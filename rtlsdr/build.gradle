@@ -41,7 +41,7 @@ model {
                         excludes.add("**/rtl_eeprom.c")
                         excludes.add("**/rtl_fm.c")
                         excludes.add("**/rtl_test.c")
-                        excludes.add("**/rtl_power.c")
+                        //excludes.add("**/rtl_power.c")
                         excludes.add("**/rtl_tcp.c")
                     }
                     dependencies {

@@ -50,11 +50,19 @@
         android:id="@+id/button"
         android:onClick="RunButtonOnClick"/>
 
+    <Button
+        android:text="Refresh log (debuggin purposes only)"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/buttonRefresh"
+        android:onClick="RefreshLogs"/>
+
 
     <TextView
         android:text="Results get printed here...\n"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/textView"
-        android:layout_weight="0.49" />
+        android:layout_weight="0.49"
+        android:scrollbars="vertical"/>
 </LinearLayout>
