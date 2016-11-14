@@ -622,7 +622,7 @@ int nearest_gain(rtlsdr_dev_t *dev, int target_gain)
     int* gains;
     r = rtlsdr_set_tuner_gain_mode(dev, 1);
     if (r < 0) {
-        fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to enable manual gain.\n");
         return r;
     }
     count = rtlsdr_get_tuner_gains(dev, NULL);
@@ -648,9 +648,9 @@ int verbose_set_frequency(rtlsdr_dev_t *dev, uint32_t frequency)
     int r;
     r = rtlsdr_set_center_freq(dev, frequency);
     if (r < 0) {
-        fprintf(stderr, "WARNING: Failed to set center freq.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to set center freq.\n");
     } else {
-        fprintf(stderr, "Tuned to %u Hz.\n", frequency);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Tuned to %u Hz.\n", frequency);
     }
     return r;
 }
@@ -660,9 +660,9 @@ int verbose_set_sample_rate(rtlsdr_dev_t *dev, uint32_t samp_rate)
     int r;
     r = rtlsdr_set_sample_rate(dev, samp_rate);
     if (r < 0) {
-        fprintf(stderr, "WARNING: Failed to set sample rate.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to set sample rate.\n");
     } else {
-        fprintf(stderr, "Sampling at %u S/s.\n", samp_rate);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Sampling at %u S/s.\n", samp_rate);
     }
     return r;
 }
@@ -672,15 +672,15 @@ int verbose_direct_sampling(rtlsdr_dev_t *dev, int on)
     int r;
     r = rtlsdr_set_direct_sampling(dev, on);
     if (r != 0) {
-        fprintf(stderr, "WARNING: Failed to set direct sampling mode.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to set direct sampling mode.\n");
         return r;
     }
     if (on == 0) {
-        fprintf(stderr, "Direct sampling mode disabled.\n");}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Direct sampling mode disabled.\n");}
     if (on == 1) {
-        fprintf(stderr, "Enabled direct sampling mode, input 1/I.\n");}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Enabled direct sampling mode, input 1/I.\n");}
     if (on == 2) {
-        fprintf(stderr, "Enabled direct sampling mode, input 2/Q.\n");}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Enabled direct sampling mode, input 2/Q.\n");}
     return r;
 }
 
@@ -689,9 +689,9 @@ int verbose_offset_tuning(rtlsdr_dev_t *dev)
     int r;
     r = rtlsdr_set_offset_tuning(dev, 1);
     if (r != 0) {
-        fprintf(stderr, "WARNING: Failed to set offset tuning.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to set offset tuning.\n");
     } else {
-        fprintf(stderr, "Offset tuning mode enabled.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Offset tuning mode enabled.\n");
     }
     return r;
 }
@@ -703,14 +703,14 @@ int verbose_gain_set(rtlsdr_dev_t *dev, int gain)
     int r;
     r = rtlsdr_set_tuner_gain_mode(dev, 1);
     if (r < 0) {
-        fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to enable manual gain.\n");
         return r;
     }
     r = rtlsdr_set_tuner_gain(dev, gain);
     if (r != 0) {
-        fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to set tuner gain.\n");
     } else {
-        fprintf(stderr, "Tuner gain set to %0.2f dB.\n", gain/10.0);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Tuner gain set to %0.2f dB.\n", gain/10.0);
     }
     return r;
 }
@@ -722,9 +722,9 @@ int verbose_ppm_set(rtlsdr_dev_t *dev, int ppm_error)
         return 0;}
     r = rtlsdr_set_freq_correction(dev, ppm_error);
     if (r < 0) {
-        fprintf(stderr, "WARNING: Failed to set ppm error.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to set ppm error.\n");
     } else {
-        fprintf(stderr, "Tuner error set to %i ppm.\n", ppm_error);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Tuner error set to %i ppm.\n", ppm_error);
     }
     return r;
 }
@@ -734,7 +734,7 @@ int verbose_reset_buffer(rtlsdr_dev_t *dev)
     int r;
     r = rtlsdr_reset_buffer(dev);
     if (r < 0) {
-        fprintf(stderr, "WARNING: Failed to reset buffers.\n");}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to reset buffers.\n");}
     return r;
 }
 
@@ -745,19 +745,19 @@ int verbose_device_search(char *s)
     char vendor[256], product[256], serial[256];
     device_count = rtlsdr_get_device_count();
     if (!device_count) {
-        fprintf(stderr, "No supported devices found.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "No supported devices found.\n");
         return -1;
     }
-    fprintf(stderr, "Found %d device(s):\n", device_count);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Found %d device(s):\n", device_count);
     for (i = 0; i < device_count; i++) {
         rtlsdr_get_device_usb_strings(i, vendor, product, serial);
-        fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
     }
-    fprintf(stderr, "\n");
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "\n");
     /* does string look like raw id number */
     device = (int)strtol(s, &s2, 0);
     if (s2[0] == '\0' && device >= 0 && device < device_count) {
-        fprintf(stderr, "Using device %d: %s\n",
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Using device %d: %s\n",
                 device, rtlsdr_get_device_name((uint32_t)device));
         return device;
     }
@@ -767,7 +767,7 @@ int verbose_device_search(char *s)
         if (strcmp(s, serial) != 0) {
             continue;}
         device = i;
-        fprintf(stderr, "Using device %d: %s\n",
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Using device %d: %s\n",
                 device, rtlsdr_get_device_name((uint32_t)device));
         return device;
     }
@@ -777,7 +777,7 @@ int verbose_device_search(char *s)
         if (strncmp(s, serial, strlen(s)) != 0) {
             continue;}
         device = i;
-        fprintf(stderr, "Using device %d: %s\n",
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Using device %d: %s\n",
                 device, rtlsdr_get_device_name((uint32_t)device));
         return device;
     }
@@ -790,11 +790,11 @@ int verbose_device_search(char *s)
         if (strncmp(s, serial+offset, strlen(s)) != 0) {
             continue;}
         device = i;
-        fprintf(stderr, "Using device %d: %s\n",
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Using device %d: %s\n",
                 device, rtlsdr_get_device_name((uint32_t)device));
         return device;
     }
-    fprintf(stderr, "No matching devices found.\n");
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "No matching devices found.\n");
     return -1;
 }
 
@@ -922,7 +922,7 @@ int peak_hold = 0;
 
 void usage(void)
 {
-    fprintf(stderr,
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG",
             "rtl_power, a simple FFT logger for RTL2832 based DVB-T receivers\n\n"
                     "Use:\trtl_power -f freq_range [-options] [filename]\n"
                     "\t-f lower:upper:bin_size [Hz]\n"
@@ -969,18 +969,19 @@ void usage(void)
                     "\t (collect data for one hour and compress it on the fly)\n\n"
                     "Convert CSV to a waterfall graphic with:\n"
                     "\t http://kmkeen.com/tmp/heatmap.py.txt \n");
-    exit(1);
+    //exit(1);
+    return;
 }
 
 void multi_bail(void)
 {
     if (do_exit == 1)
     {
-        fprintf(stderr, "Signal caught, finishing scan pass.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Signal caught, finishing scan pass.\n");
     }
     if (do_exit >= 2)
     {
-        fprintf(stderr, "Signal caught, aborting immediately.\n");
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Signal caught, aborting immediately.\n");
     }
 }
 
@@ -1288,8 +1289,9 @@ void frequency_range(char *arg, double crop)
         crop = 0;
     }
     if (tune_count > MAX_TUNES) {
-        fprintf(stderr, "Error: bandwidth too wide.\n");
-        exit(1);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Error: bandwidth too wide.\n");
+        //exit(1);
+        return;
     }
     buf_len = 2 * (1<<bin_e) * downsample;
     if (buf_len < DEFAULT_BUF_LENGTH) {
@@ -1307,29 +1309,31 @@ void frequency_range(char *arg, double crop)
         ts->downsample_passes = downsample_passes;
         ts->avg = (long*)malloc((1<<bin_e) * sizeof(long));
         if (!ts->avg) {
-            fprintf(stderr, "Error: malloc.\n");
-            exit(1);
+            __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Error: malloc.\n");
+            //exit(1);
+            return;
         }
         for (j=0; j<(1<<bin_e); j++) {
             ts->avg[j] = 0L;
         }
         ts->buf8 = (uint8_t*)malloc(buf_len * sizeof(uint8_t));
         if (!ts->buf8) {
-            fprintf(stderr, "Error: malloc.\n");
-            exit(1);
+            __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Error: malloc.\n");
+            //exit(1);
+            return;
         }
         ts->buf_len = buf_len;
     }
     /* report */
-    fprintf(stderr, "Number of frequency hops: %i\n", tune_count);
-    fprintf(stderr, "Dongle bandwidth: %iHz\n", bw_used);
-    fprintf(stderr, "Downsampling by: %ix\n", downsample);
-    fprintf(stderr, "Cropping by: %0.2f%%\n", crop*100);
-    fprintf(stderr, "Total FFT bins: %i\n", tune_count * (1<<bin_e));
-    fprintf(stderr, "Logged FFT bins: %i\n", \
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Number of frequency hops: %i\n", tune_count);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Dongle bandwidth: %iHz\n", bw_used);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Downsampling by: %ix\n", downsample);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Cropping by: %0.2f%%\n", crop*100);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Total FFT bins: %i\n", tune_count * (1<<bin_e));
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Logged FFT bins: %i\n", \
 	  (int)((double)(tune_count * (1<<bin_e)) * (1.0-crop)));
-    fprintf(stderr, "FFT bin size: %0.2fHz\n", bin_size);
-    fprintf(stderr, "Buffer size: %i bytes (%0.2fms)\n", buf_len, 1000 * 0.5 * (float)buf_len / (float)bw_used);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "FFT bin size: %0.2fHz\n", bin_size);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Buffer size: %i bytes (%0.2fms)\n", buf_len, 1000 * 0.5 * (float)buf_len / (float)bw_used);
 }
 
 void retune(rtlsdr_dev_t *d, int freq)
@@ -1341,7 +1345,7 @@ void retune(rtlsdr_dev_t *d, int freq)
     usleep(5000);
     rtlsdr_read_sync(d, &dump, BUFFER_DUMP, &n_read);
     if (n_read != BUFFER_DUMP) {
-        fprintf(stderr, "Error: bad retune.\n");}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Error: bad retune.\n");}
 }
 
 void fifth_order(int16_t *data, int length)
@@ -1449,7 +1453,7 @@ void scanner(void)
             retune(dev, ts->freq);}
         rtlsdr_read_sync(dev, ts->buf8, buf_len, &n_read);
         if (n_read != buf_len) {
-            fprintf(stderr, "Error: dropped samples.\n");}
+            __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Error: dropped samples.\n");}
         /* rms */
         if (bin_len == 1) {
             rms_power(ts);
@@ -1661,13 +1665,15 @@ int mainCOPIED(int argc, char **argv)
     }
 
     if (!f_set) {
-        fprintf(stderr, "No frequency range provided.\n");
-        exit(1);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "No frequency range provided.\n");
+        //exit(1);
+        return 0;
     }
 
     if ((crop < 0.0) || (crop > 1.0)) {
-        fprintf(stderr, "Crop value outside of 0 to 1.\n");
-        exit(1);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Crop value outside of 0 to 1.\n");
+        //exit(1);
+        return 0;
     }
 
     frequency_range(freq_optarg, crop);
@@ -1684,20 +1690,22 @@ int mainCOPIED(int argc, char **argv)
     if (interval < 1) {
         interval = 1;}
 
-    fprintf(stderr, "Reporting every %i seconds\n", interval);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Reporting every %i seconds\n", interval);
 
     if (!dev_given) {
         dev_index = verbose_device_search("0");
     }
 
     if (dev_index < 0) {
-        exit(1);
+        //exit(1);
+        return 0;
     }
 
     r = rtlsdr_open(&dev, (uint32_t)dev_index);
     if (r < 0) {
-        fprintf(stderr, "Failed to open rtlsdr device #%d.\n", dev_index);
-        exit(1);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Failed to open rtlsdr device #%d.\n", dev_index);
+        //exit(1);
+        return 0;
     }
 #ifndef _WIN32
     sigact.sa_handler = sighandler;
@@ -1738,8 +1746,9 @@ int mainCOPIED(int argc, char **argv)
     } else {
         file = fopen(filename, "wb");
         if (!file) {
-            fprintf(stderr, "Failed to open %s\n", filename);
-            exit(1);
+            __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Failed to open %s\n", filename);
+            //exit(1);
+            return 0;
         }
     }
 
@@ -1782,9 +1791,9 @@ int mainCOPIED(int argc, char **argv)
     /* clean up */
 
     if (do_exit) {
-        fprintf(stderr, "\nUser cancel, exiting...\n");}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "\nUser cancel, exiting...\n");}
     else {
-        fprintf(stderr, "\nLibrary error %d, exiting...\n", r);}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "\nLibrary error %d, exiting...\n", r);}
 
     if (file != stdout) {
         fclose(file);}

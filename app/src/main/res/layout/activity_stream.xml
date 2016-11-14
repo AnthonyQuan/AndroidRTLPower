@@ -50,12 +50,6 @@
         android:id="@+id/button"
         android:onClick="RunButtonOnClick"/>
 
-    <Button
-        android:text="Refresh log (debuggin purposes only)"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/buttonRefresh"
-        android:onClick="RefreshLogs"/>
 
 
     <TextView

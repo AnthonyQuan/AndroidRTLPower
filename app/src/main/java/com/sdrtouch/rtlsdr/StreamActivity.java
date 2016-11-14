@@ -20,6 +20,8 @@
 
 package com.sdrtouch.rtlsdr;
 
+import java.io.*;
+import android.os.AsyncTask;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
@@ -41,13 +43,15 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-
+import android.os.Environment;
 import com.sdrtouch.core.exceptions.SdrException.err_info;
 import com.sdrtouch.rtlsdr.BinaryRunnerService.LocalBinder;
 import com.sdrtouch.tools.Check;
 import com.sdrtouch.tools.DialogManager;
 import com.sdrtouch.tools.DialogManager.dialogs;
 import com.sdrtouch.tools.Log;
+import java.util.concurrent.atomic.AtomicBoolean;
+import android.text.method.ScrollingMovementMethod;
 
 import marto.rtl_tcp_andro.R;
 
@@ -71,14 +75,55 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_stream);
+        //experimental start
+        TextView textView = (TextView) findViewById(R.id.textView);
+        textView.setMovementMethod(new ScrollingMovementMethod());
+        LogCatTask logCatTask = new LogCatTask(){
+            @Override
+            protected void onProgressUpdate(String... values) {
+                TextView textView = (TextView) findViewById(R.id.textView);
+                textView.setText(values[0]);
+                super.onProgressUpdate(values);
+            }
+        };
+        logCatTask.execute();
+        //experimental end
 
 
 	}
 
+    public class LogCatTask extends AsyncTask<Void, String, Void> {
+        public AtomicBoolean run = new AtomicBoolean(true);
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                Runtime.getRuntime().exec("logcat -c");
+                Process process = Runtime.getRuntime().exec("logcat RTL_LOG:V *:S -v raw");
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder log = new StringBuilder();
+                String line = "";
+                while (run.get()) {
+                    line = bufferedReader.readLine();
+                    if (line != null) {
+                        log.append(line + "\n");
+                        publishProgress(log.toString());
+                    }
+                    line = null;
+                    Thread.sleep(10);
+                }
+            }
+            catch(Exception ex){
+
+            }
+            return null;
+        }
+    }
+
 	public void RunButtonOnClick(View view)
     {
         Thread workerThread=null;
-        final String[] argv = {"-f", "88M:108M:125k", "/sdcard/filename.csv"};
+        final String[] argv = {"-f", "88M:108M:125k", Environment.getExternalStorageDirectory()+"/filename.csv"};
 
         //define a new runnable class which defines what the worker thread does
         Runnable runnable = new Runnable() {
@@ -96,7 +141,7 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
         {
             isRunning=false; //change status of program
             ((Button) findViewById(R.id.button)).setText("Start");
-
+            workerThread.interrupt();
         }
         else //program is not running, lets start it
         {
@@ -125,12 +170,6 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
     }
 
 
-    public void RefreshLogs(View view)
-    {
-        //update what the user sees with the logs gathered from RTL Power, will need to revisit if this works
-        TextView textView = (TextView) findViewById(R.id.textView);
-        textView.setText(Log.getFullLog());
-    }
 
 	public void showDialog(final DialogManager.dialogs id, final String ... args) {
 
