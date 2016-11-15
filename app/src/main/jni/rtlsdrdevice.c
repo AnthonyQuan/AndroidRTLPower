@@ -37,6 +37,8 @@
 }
 
 #define RUN_OR_GOTO(command, label) RUN_OR(command, goto label);
+static volatile int do_exit = 0;
+
 
 typedef struct rtlsdr_android {
     sdrtcp_t tcpserv;
@@ -310,6 +312,24 @@ JNIEXPORT jobjectArray JNICALL Java_com_sdrtouch_rtlsdr_driver_RtlSdrDevice_getS
 
     (*env)->SetIntArrayRegion(env, result, 0, n_commands, commands);
     return result;
+}
+
+int globalFD;
+char * globalDevicePath;
+
+JNIEXPORT void JNICALL
+Java_com_sdrtouch_rtlsdr_StreamActivity_passFDandDeviceName(JNIEnv *env, jobject instance,jint fd_,jstring path_)
+{
+    //set up some dirty global variables found just above this metohd
+    globalFD = fd_;
+    globalDevicePath = (*env)->GetStringUTFChars(env, path_, 0);
+
+}
+
+JNIEXPORT void JNICALL
+Java_com_sdrtouch_rtlsdr_StreamActivity_staphRTLPOWER(JNIEnv *env, jobject instance)
+{
+    do_exit=1;
 }
 
 JNIEXPORT jstring JNICALL
@@ -753,7 +773,6 @@ int verbose_device_search(char *s)
         rtlsdr_get_device_usb_strings(i, vendor, product, serial);
         __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
     }
-    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "\n");
     /* does string look like raw id number */
     device = (int)strtol(s, &s2, 0);
     if (s2[0] == '\0' && device >= 0 && device < device_count) {
@@ -879,7 +898,6 @@ int verbose_device_search(char *s)
 #define MAXIMUM_RATE			2800000
 #define MINIMUM_RATE			1000000
 
-static volatile int do_exit = 0;
 static rtlsdr_dev_t *dev = NULL;
 FILE *file;
 
@@ -1539,9 +1557,12 @@ void csv_dbm(struct tuning_state *ts)
     bw2 = (int)(((double)ts->rate * (double)bin_count) / (len * 2 * ds));
     fprintf(file, "%i, %i, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
             (double)ts->rate / (double)(len*ds), ts->samples);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "printing Hz low, Hz high, Hz step, samples");
+
     // something seems off with the dbm math
     i1 = 0 + (int)((double)len * ts->crop * 0.5);
     i2 = (len-1) - (int)((double)len * ts->crop * 0.5);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "printing individual samples");
     for (i=i1; i<=i2; i++) {
         dbm  = (double)ts->avg[i];
         dbm /= (double)ts->rate;
@@ -1555,6 +1576,7 @@ void csv_dbm(struct tuning_state *ts)
 		((double)ts->rate * (double)ts->samples));}
     dbm  = 10 * log10(dbm);
     fprintf(file, "%.2f\n", dbm);
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "==== CSV row finished ====");
     for (i=0; i<len; i++) {
         ts->avg[i] = 0L;
     }
@@ -1692,16 +1714,18 @@ int mainCOPIED(int argc, char **argv)
 
     __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Reporting every %i seconds\n", interval);
 
-    if (!dev_given) {
-        dev_index = verbose_device_search("0");
-    }
+    //the value of dev_given is set to TRUE (1) IF the user specified a value for argument -d
+    //if (!dev_given) {
+    //    dev_index = verbose_device_search("0");
+    //}
 
     if (dev_index < 0) {
         //exit(1);
         return 0;
     }
-
-    r = rtlsdr_open(&dev, (uint32_t)dev_index);
+    //original line commented out
+    //r = rtlsdr_open(&dev, (uint32_t)dev_index);
+    r = rtlsdr_open2(&dev, globalFD, globalDevicePath);
     if (r < 0) {
         __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Failed to open rtlsdr device #%d.\n", dev_index);
         //exit(1);
@@ -1775,8 +1799,10 @@ int mainCOPIED(int argc, char **argv)
         // time, Hz low, Hz high, Hz step, samples, dbm, dbm, ...
         cal_time = localtime(&time_now);
         strftime(t_str, 50, "%Y-%m-%d, %H:%M:%S", cal_time);
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "==== CSV row start ====");
         for (i=0; i<tune_count; i++) {
             fprintf(file, "%s, ", t_str);
+            __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG","printing timestamp");
             csv_dbm(&tunes[i]);
         }
         fflush(file);
@@ -1791,9 +1817,9 @@ int mainCOPIED(int argc, char **argv)
     /* clean up */
 
     if (do_exit) {
-        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "\nUser cancel, exiting...\n");}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "User cancel, exiting...\n");}
     else {
-        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "\nLibrary error %d, exiting...\n", r);}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Library error %d, exiting...\n", r);}
 
     if (file != stdout) {
         fclose(file);}

@@ -21,7 +21,11 @@
 package com.sdrtouch.rtlsdr;
 
 import java.io.*;
+
+import android.content.BroadcastReceiver;
+import android.hardware.usb.UsbDeviceConnection;
 import android.os.AsyncTask;
+import android.util.Log;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
@@ -44,20 +48,39 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import android.os.Environment;
+
+import com.sdrtouch.core.devices.SdrDevice;
+import com.sdrtouch.core.devices.SdrDeviceProvider;
+import com.sdrtouch.core.exceptions.SdrException;
 import com.sdrtouch.core.exceptions.SdrException.err_info;
 import com.sdrtouch.rtlsdr.BinaryRunnerService.LocalBinder;
+import com.sdrtouch.rtlsdr.driver.RtlSdrDevice;
+import com.sdrtouch.rtlsdr.driver.RtlSdrDeviceProvider;
 import com.sdrtouch.tools.Check;
 import com.sdrtouch.tools.DialogManager;
 import com.sdrtouch.tools.DialogManager.dialogs;
-import com.sdrtouch.tools.Log;
+import com.sdrtouch.tools.UsbPermissionHelper;
+import com.sdrtouch.tools.UsbPermissionObtainer;
+import android.hardware.usb.UsbManager;
+import android.hardware.usb.UsbDevice;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import android.text.method.ScrollingMovementMethod;
 
 import marto.rtl_tcp_andro.R;
 
-public class StreamActivity extends FragmentActivity implements Log.Callback {
+public class StreamActivity extends FragmentActivity {
 
 	boolean isRunning=false;
+
     private static final int START_REQ_CODE = 1;
     private BinaryRunnerService service;
 
@@ -68,14 +91,16 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
         System.loadLibrary("rtlSdrAndroid");
     }
 
-    //c method
+    //c methods
     public native String stringFromJNI(String[] argv);
+    public native void passFDandDeviceName(int fd_, String path_);
+    public native void staphRTLPOWER();
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_stream);
-        //experimental start
+        //experimental code to update textview with logs start
         TextView textView = (TextView) findViewById(R.id.textView);
         textView.setMovementMethod(new ScrollingMovementMethod());
         LogCatTask logCatTask = new LogCatTask(){
@@ -83,6 +108,15 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
             protected void onProgressUpdate(String... values) {
                 TextView textView = (TextView) findViewById(R.id.textView);
                 textView.setText(values[0]);
+                // find the amount we need to scroll.  This works by
+                // asking the TextView's internal layout for the position
+                // of the final line and then subtracting the TextView's height
+                final int scrollAmount = textView.getLayout().getLineTop(textView.getLineCount()) - textView.getHeight();
+                // if there is no need to scroll, scrollAmount will be <=0
+                if (scrollAmount > 0)
+                    textView.scrollTo(0, scrollAmount);
+                else
+                    textView.scrollTo(0, 0);
                 super.onProgressUpdate(values);
             }
         };
@@ -120,19 +154,76 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
         }
     }
 
-	public void RunButtonOnClick(View view)
+
+	public void RunButtonOnClick (View view) throws ExecutionException, InterruptedException
     {
         Thread workerThread=null;
+        //when the time comes, replace hardcoded arguments with proper ones
         final String[] argv = {"-f", "88M:108M:125k", Environment.getExternalStorageDirectory()+"/filename.csv"};
 
         //define a new runnable class which defines what the worker thread does
         Runnable runnable = new Runnable() {
             @Override
-            public void run() {
+            public void run()  {
                 // load library already done at the top
 
-                //call c method
+
+                //code to open USB device start
+
+                //enumerate through devices from android i.e. availableUSBDevices does the two lines below
+                //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+                //HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
+                Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(getApplicationContext(), R.xml.device_filter);
+
+
+                switch (availableUsbDevices.size()) {
+                    case 1:
+                        UsbDevice usbDevice = availableUsbDevices.iterator().next(); //get me the only usb device in availableUSBDevices
+                        Log.d("RTL_LOG","1 USB Device detected: "+ usbDevice.getDeviceName());
+                        try {
+
+                            //set up device connection + ask for permissions
+                            UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(getApplicationContext(), usbDevice).get();
+
+                            //print shit to screen if errored out
+                            TextView textView = (TextView) findViewById(R.id.textView);
+                            if (deviceConnection == null)
+                            {
+                                textView.append("Could not get a connection to the USB");
+                                throw new RuntimeException("Could not get a connection");
+                            }
+
+                            //otherwise USB device connection established lovelyyyy
+                            int fd = deviceConnection.getFileDescriptor(); //to be passed to c
+                            Log.d("RTL_LOG","Opening fd: "+fd);
+
+                            String path = usbDevice.getDeviceName();//to be passed to c
+                            Log.d("RTL_LOG","USB path: "+path);
+                            passFDandDeviceName(fd,path); //method to pass to c
+                        } catch (ExecutionException ee)
+                        {
+                            Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Execution Exception.");
+                        }
+                        catch (InterruptedException ie)
+                        {
+                            Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Interrupted Exception");
+                        }
+
+                        break;
+                    default:
+                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
+                        return;
+                }
+
+                //code to open USB device end
+
+
+
+
+                //call c method with hard coded arguments
+
                 stringFromJNI(argv);
+
             }
         };
 
@@ -141,13 +232,15 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
         {
             isRunning=false; //change status of program
             ((Button) findViewById(R.id.button)).setText("Start");
-            workerThread.interrupt();
+            staphRTLPOWER();// set a global volatile var do_exit in c to quit.
         }
         else //program is not running, lets start it
         {
             isRunning=true;
             ((Button) findViewById(R.id.button)).setText("Stop");
-            //start background thread to run RTL Power
+
+            //currently unused stuff --begin block
+
             EditText freqLower = (EditText) findViewById(R.id.freqLower);
             EditText freqHigher = (EditText) findViewById(R.id.freqHigher);
             EditText bins = (EditText) findViewById(R.id.bins);
@@ -160,7 +253,9 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
             textView.append("Number of Bins: " + bins.getText().toString() + "\n");
             textView.append("File Name: " + fileName.getText().toString()+ "\n");
 
-            //put my args into a string array
+            //put args into string array and send to main
+
+            //currently unused stuff --end block
 
 
             //start calling rtl power in another thread
@@ -201,9 +296,5 @@ public class StreamActivity extends FragmentActivity implements Log.Callback {
 	@Override
 	protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
 
-	}
-	
-	@Override
-	public void onChanged() {
 	}
 }

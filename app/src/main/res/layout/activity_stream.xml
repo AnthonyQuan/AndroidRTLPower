@@ -51,12 +51,10 @@
         android:onClick="RunButtonOnClick"/>
 
 
-
     <TextView
         android:text="Results get printed here...\n"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/textView"
-        android:layout_weight="0.49"
         android:scrollbars="vertical"/>
 </LinearLayout>

@@ -35,12 +35,11 @@ import com.sdrtouch.tools.UsbPermissionObtainer;
 import java.util.concurrent.ExecutionException;
 
 public class RtlSdrDevice extends SdrDevice {
-    private final UsbDevice usbDevice;
-    private final long nativeHandler;
+    public final UsbDevice usbDevice;
+    private final long nativeHandler=0;
 
     public RtlSdrDevice(UsbDevice usbDevice) {
         this.usbDevice = usbDevice;
-        this.nativeHandler = initialize();
     }
 
     @Override
