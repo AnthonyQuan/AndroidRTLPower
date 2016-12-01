@@ -332,6 +332,8 @@ Java_com_sdrtouch_rtlsdr_StreamActivity_staphRTLPOWER(JNIEnv *env, jobject insta
     do_exit=1;
 }
 
+static volatile int executionFinished = 0;
+
 JNIEXPORT jstring JNICALL
 Java_com_sdrtouch_rtlsdr_StreamActivity_stringFromJNI( JNIEnv* env, jobject object, jobjectArray stringArray)
 {
@@ -353,8 +355,9 @@ Java_com_sdrtouch_rtlsdr_StreamActivity_stringFromJNI( JNIEnv* env, jobject obje
     }
 
     // call the legacy "main" function
-    LOGI("lol123");
+    executionFinished = 0;
     mainCOPIED( ArgCount + 1, argv );
+	executionFinished = 1;
 
     // cleanup
     for( i = 0; i < ArgCount; ++i ) free( argv[ i + 1 ] );
@@ -365,6 +368,11 @@ Java_com_sdrtouch_rtlsdr_StreamActivity_stringFromJNI( JNIEnv* env, jobject obje
     return (*env)->NewStringUTF(env, "Hello from JNI !\n");
 }
 
+JNIEXPORT jint JNICALL
+Java_com_sdrtouch_rtlsdr_StreamActivity_readExecutionFinished(JNIEnv *env, jobject instance)
+{
+    return executionFinished;
+}
 
 void testThis()
 {

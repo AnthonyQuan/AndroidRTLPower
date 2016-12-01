@@ -20,71 +20,52 @@
 
 package com.sdrtouch.rtlsdr;
 
-import java.io.*;
-
-import android.content.BroadcastReceiver;
-import android.hardware.usb.UsbDeviceConnection;
-import android.os.AsyncTask;
-import android.util.Log;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.ComponentName;
-import android.content.Context;
+import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.net.Uri;
+import android.content.pm.PackageManager;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.support.annotation.NonNull;
-import android.support.v4.app.DialogFragment;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentTransaction;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.Button;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
-import android.widget.ToggleButton;
 import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentActivity;
+import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 
-import com.sdrtouch.core.devices.SdrDevice;
-import com.sdrtouch.core.devices.SdrDeviceProvider;
-import com.sdrtouch.core.exceptions.SdrException;
-import com.sdrtouch.core.exceptions.SdrException.err_info;
-import com.sdrtouch.rtlsdr.BinaryRunnerService.LocalBinder;
-import com.sdrtouch.rtlsdr.driver.RtlSdrDevice;
-import com.sdrtouch.rtlsdr.driver.RtlSdrDeviceProvider;
-import com.sdrtouch.tools.Check;
 import com.sdrtouch.tools.DialogManager;
-import com.sdrtouch.tools.DialogManager.dialogs;
 import com.sdrtouch.tools.UsbPermissionHelper;
 import com.sdrtouch.tools.UsbPermissionObtainer;
-import android.hardware.usb.UsbManager;
-import android.hardware.usb.UsbDevice;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import android.text.method.ScrollingMovementMethod;
 
 import marto.rtl_tcp_andro.R;
 
 public class StreamActivity extends FragmentActivity {
 
-	boolean isRunning=false;
-
     private static final int START_REQ_CODE = 1;
     private BinaryRunnerService service;
+    private boolean isRunning = false;
+    private String batchId = null;
+    private File dirName = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 
-
+    // Storage Permissions
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
 
     // loads the c library
     static {
@@ -95,93 +76,57 @@ public class StreamActivity extends FragmentActivity {
     public native String stringFromJNI(String[] argv);
     public native void passFDandDeviceName(int fd_, String path_);
     public native void staphRTLPOWER();
+    public native int readExecutionFinished();
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_stream);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_stream);
+
         //experimental code to update textview with logs start
-        TextView textView = (TextView) findViewById(R.id.textView);
-        textView.setMovementMethod(new ScrollingMovementMethod());
-        LogCatTask logCatTask = new LogCatTask(){
-            @Override
-            protected void onProgressUpdate(String... values) {
-                TextView textView = (TextView) findViewById(R.id.textView);
-                textView.setText(values[0]);
-                // find the amount we need to scroll.  This works by
-                // asking the TextView's internal layout for the position
-                // of the final line and then subtracting the TextView's height
-                final int scrollAmount = textView.getLayout().getLineTop(textView.getLineCount()) - textView.getHeight();
-                // if there is no need to scroll, scrollAmount will be <=0
-                if (scrollAmount > 0)
-                    textView.scrollTo(0, scrollAmount);
-                else
-                    textView.scrollTo(0, 0);
-                super.onProgressUpdate(values);
-            }
-        };
-        logCatTask.execute();
+        TextView logView = (TextView) findViewById(R.id.textView);
+        logView.setMovementMethod(new ScrollingMovementMethod());
+        AsyncTaskTools.execute(new LogCatTask(this));
         //experimental end
+    }
 
+    private static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
 
-	}
-
-    public class LogCatTask extends AsyncTask<Void, String, Void> {
-        public AtomicBoolean run = new AtomicBoolean(true);
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            try {
-                Runtime.getRuntime().exec("logcat -c");
-                Process process = Runtime.getRuntime().exec("logcat RTL_LOG:V *:S -v raw");
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                StringBuilder log = new StringBuilder();
-                String line = "";
-                while (run.get()) {
-                    line = bufferedReader.readLine();
-                    if (line != null) {
-                        log.append(line + "\n");
-                        publishProgress(log.toString());
-                    }
-                    line = null;
-                    Thread.sleep(10);
-                }
-            }
-            catch(Exception ex){
-
-            }
-            return null;
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
         }
     }
 
-
-	public void RunButtonOnClick (View view) throws ExecutionException, InterruptedException
-    {
-        Thread workerThread=null;
-        //when the time comes, replace hardcoded arguments with proper ones
-        final String[] argv = {"-f", "88M:108M:125k", Environment.getExternalStorageDirectory()+"/filename.csv"};
+    public void RunButtonOnClick (View view) throws ExecutionException, InterruptedException, IOException, ParseException {
+        verifyStoragePermissions(this);
+        Thread workerThread = null;
 
         //define a new runnable class which defines what the worker thread does
         Runnable runnable = new Runnable() {
             @Override
-            public void run()  {
+            public void run() {
                 // load library already done at the top
-
-
                 //code to open USB device start
-
                 //enumerate through devices from android i.e. availableUSBDevices does the two lines below
                 //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
                 //HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
                 Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(getApplicationContext(), R.xml.device_filter);
 
+                //when the time comes, replace hardcoded arguments with proper ones
+                final String[] argv = {"-f", "88M:108M:125k", dirName + "/" + batchId + ".csv"};
 
                 switch (availableUsbDevices.size()) {
                     case 1:
                         UsbDevice usbDevice = availableUsbDevices.iterator().next(); //get me the only usb device in availableUSBDevices
                         Log.d("RTL_LOG","1 USB Device detected: "+ usbDevice.getDeviceName());
                         try {
-
                             //set up device connection + ask for permissions
                             UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(getApplicationContext(), usbDevice).get();
 
@@ -196,7 +141,6 @@ public class StreamActivity extends FragmentActivity {
                             //otherwise USB device connection established lovelyyyy
                             int fd = deviceConnection.getFileDescriptor(); //to be passed to c
                             Log.d("RTL_LOG","Opening fd: "+fd);
-
                             String path = usbDevice.getDeviceName();//to be passed to c
                             Log.d("RTL_LOG","USB path: "+path);
                             passFDandDeviceName(fd,path); //method to pass to c
@@ -208,39 +152,45 @@ public class StreamActivity extends FragmentActivity {
                         {
                             Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Interrupted Exception");
                         }
-
                         break;
                     default:
                         Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
                         return;
                 }
-
                 //code to open USB device end
-
-
-
-
                 //call c method with hard coded arguments
-
                 stringFromJNI(argv);
-
             }
         };
 
-
-        if (isRunning==true) //program is already running, lets  stop it
+        if (isRunning == true) //program is already running, lets  stop it
         {
-            isRunning=false; //change status of program
+            isRunning = false; //change status of program
             ((Button) findViewById(R.id.button)).setText("Start");
             staphRTLPOWER();// set a global volatile var do_exit in c to quit.
+
+            Log.d("RTL_LOG", "Waiting for rtl_power to terminate. Begin loop...");
+            int executionStatus;
+            do {
+                executionStatus = readExecutionFinished();
+                //Implement wait
+                //Logging such as Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
+            } while (executionStatus == 0);
+
+            Log.d("RTL_LOG", "rtl_power terminated. Begin conversion...");
+            CsvConverter csvToJson = new CsvConverter();
+            csvToJson.convert(dirName.toString(), batchId, "10s"); //String dirName, String batchID, String integrationInterval
+
+            Log.d("RTL_LOG", "Starting HTTP Async thread...");
+            AsyncTaskTools.execute(new HttpPostRequest(dirName.toString(), batchId));
         }
         else //program is not running, lets start it
         {
-            isRunning=true;
+            isRunning = true;
+            batchId = getBatchId(); //Set batch ID to current datetime
             ((Button) findViewById(R.id.button)).setText("Stop");
 
             //currently unused stuff --begin block
-
             EditText freqLower = (EditText) findViewById(R.id.freqLower);
             EditText freqHigher = (EditText) findViewById(R.id.freqHigher);
             EditText bins = (EditText) findViewById(R.id.bins);
@@ -254,9 +204,7 @@ public class StreamActivity extends FragmentActivity {
             textView.append("File Name: " + fileName.getText().toString()+ "\n");
 
             //put args into string array and send to main
-
             //currently unused stuff --end block
-
 
             //start calling rtl power in another thread
             workerThread = new Thread(runnable);
@@ -264,37 +212,35 @@ public class StreamActivity extends FragmentActivity {
         }
     }
 
+    private static String getBatchId() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd-HHmmss");
+        Date date = new Date();
+        return sdf.format(date);
+    }
 
+    public void showDialog(final DialogManager.dialogs id, final String ... args) {
+    }
 
-	public void showDialog(final DialogManager.dialogs id, final String ... args) {
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+    }
 
-	}
-	
-	@Override
-	protected void onSaveInstanceState(Bundle outState) {
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+    }
 
-	}
-	
-	@Override
-	protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-		super.onRestoreInstanceState(savedInstanceState);
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
 
-	}
-	
-	@Override
-	protected void onResume() {
-		super.onResume();
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
 
-	}
-	
-	@Override
-	protected void onPause() {
-		super.onPause();
-
-	}
-
-	@Override
-	protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
-
-	}
+    @Override
+    protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+    }
 }
