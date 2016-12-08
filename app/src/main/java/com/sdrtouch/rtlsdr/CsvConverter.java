@@ -1,5 +1,6 @@
 package com.sdrtouch.rtlsdr;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
 import java.util.*;
@@ -11,7 +12,34 @@ import java.text.SimpleDateFormat;
  * Created by Jackie on 28/11/2016.
  */
 
-public class CsvConverter {
+public class CsvConverter extends AsyncTask<String, Void, Void> {
+
+    private String dirName;
+    private String batchID;
+    private String integrationInterval;
+
+    public CsvConverter(String dirName, String batchID, String integrationInterval) {
+        this.dirName = dirName;
+        this.batchID = batchID;
+        this.integrationInterval = integrationInterval;
+    }
+
+    @Override
+    protected Void doInBackground(String[] params) {
+        try {
+            convert(dirName, batchID, integrationInterval);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    protected void onPostExecute(Void v) {
+        //Trigger HTTP Async thread after this thread is complete
+        Log.d("RTL_LOG", "Starting HTTP Async thread...");
+        AsyncTaskTools.execute(new HttpPostRequest(dirName.toString(), batchID));
+    }
 
     public static void convert(String dirName, String batchID, String integrationInterval) throws IOException, ParseException {
         Log.d("RTL_LOG", "Finding .csv file in directory...");

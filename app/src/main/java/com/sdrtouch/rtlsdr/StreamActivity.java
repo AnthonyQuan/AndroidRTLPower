@@ -57,7 +57,7 @@ public class StreamActivity extends FragmentActivity {
     private static final int START_REQ_CODE = 1;
     private BinaryRunnerService service;
     private boolean isRunning = false;
-    private String batchId = null;
+    private String batchID = null;
     private File dirName = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 
     // Storage Permissions
@@ -120,7 +120,7 @@ public class StreamActivity extends FragmentActivity {
                 Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(getApplicationContext(), R.xml.device_filter);
 
                 //when the time comes, replace hardcoded arguments with proper ones
-                final String[] argv = {"-f", "88M:108M:125k", dirName + "/" + batchId + ".csv"};
+                final String[] argv = {"-f", "88M:108M:125k", dirName + "/" + batchID + ".csv"};
 
                 switch (availableUsbDevices.size()) {
                     case 1:
@@ -177,17 +177,15 @@ public class StreamActivity extends FragmentActivity {
                 //Logging such as Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
             } while (executionStatus == 0);
 
+            //Trigger CsvToJson Async thread
+            //HTTP Async thread will be triggered after this thread is complete
             Log.d("RTL_LOG", "rtl_power terminated. Begin conversion...");
-            CsvConverter csvToJson = new CsvConverter();
-            csvToJson.convert(dirName.toString(), batchId, "10s"); //String dirName, String batchID, String integrationInterval
-
-            Log.d("RTL_LOG", "Starting HTTP Async thread...");
-            AsyncTaskTools.execute(new HttpPostRequest(dirName.toString(), batchId));
+            AsyncTaskTools.execute(new CsvConverter(dirName.toString(), batchID, "10s"));
         }
         else //program is not running, lets start it
         {
             isRunning = true;
-            batchId = getBatchId(); //Set batch ID to current datetime
+            batchID = getbatchID(); //Set batch ID to current datetime
             ((Button) findViewById(R.id.button)).setText("Stop");
 
             //currently unused stuff --begin block
@@ -212,7 +210,7 @@ public class StreamActivity extends FragmentActivity {
         }
     }
 
-    private static String getBatchId() {
+    private static String getbatchID() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd-HHmmss");
         Date date = new Date();
         return sdf.format(date);

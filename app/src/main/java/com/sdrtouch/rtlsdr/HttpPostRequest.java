@@ -16,7 +16,7 @@ import java.net.URL;
  * Created by Jackie on 28/11/2016.
  */
 
-public class HttpPostRequest extends AsyncTask<String, Void, String> {
+public class HttpPostRequest extends AsyncTask<String, Void, Void> {
     private String dirName;
     private String batchID;
 
@@ -26,8 +26,7 @@ public class HttpPostRequest extends AsyncTask<String, Void, String> {
     }
 
     @Override
-    protected String doInBackground(String[] params) {
-        String data = null;
+    protected Void doInBackground(String[] params) {
         try {
             Log.d("RTL_LOG", "Finding .json file in directory...");
             File jsonFile = findFile(dirName, batchID);
@@ -37,20 +36,15 @@ public class HttpPostRequest extends AsyncTask<String, Void, String> {
                 FileInputStream fis = new FileInputStream(jsonFile);
                 String jsonData = convertStreamToString(fis);
                 fis.close();
-                data = executeRequest(jsonData);
+                executeRequest(jsonData);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return data;
+        return null;
     }
 
-    @Override
-    protected void onPostExecute(String result) {
-        Log.d("RTL_LOG","Response body: " + result);
-    }
-
-    private String executeRequest(String jsonData) throws Exception {
+    private void executeRequest(String jsonData) throws Exception {
         String responseData;
         String url = "http://ec2-52-64-226-30.ap-southeast-2.compute.amazonaws.com:9000/addrecord/spectrum";
 
@@ -87,7 +81,7 @@ public class HttpPostRequest extends AsyncTask<String, Void, String> {
 
         //Store Response
         responseData = response.toString();
-        return responseData;
+        Log.d("RTL_LOG","Response body: " + responseData);
     }
 
     private static File findFile(String dirName, String batchID) {
