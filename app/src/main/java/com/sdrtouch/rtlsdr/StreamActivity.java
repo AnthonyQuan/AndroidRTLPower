@@ -58,7 +58,7 @@ public class StreamActivity extends FragmentActivity {
     private BinaryRunnerService service;
     private boolean isRunning = false;
     private String batchID = null;
-    private File dirName = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+    private File dirName = new File(Environment.getExternalStorageDirectory() + File.separator + "RTL_POWER");
 
     // Storage Permissions
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -105,8 +105,14 @@ public class StreamActivity extends FragmentActivity {
     }
 
     public void RunButtonOnClick (View view) throws ExecutionException, InterruptedException, IOException, ParseException {
-        verifyStoragePermissions(this);
         Thread workerThread = null;
+
+        verifyStoragePermissions(this);
+
+        //Create Working Directory
+        if (!dirName.exists()) {
+            dirName.mkdirs();
+        }
 
         //define a new runnable class which defines what the worker thread does
         Runnable runnable = new Runnable() {
