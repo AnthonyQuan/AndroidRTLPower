@@ -14,6 +14,8 @@ import java.net.URL;
 
 /**
  * Created by Jackie on 28/11/2016.
+ * This class is responsible for locating the .json file after conversion and POSTing
+ * the contents to MongoDB via a URI endpoint.
  */
 
 public class HttpPostRequest extends AsyncTask<String, Void, Void> {
@@ -79,7 +81,7 @@ public class HttpPostRequest extends AsyncTask<String, Void, Void> {
         }
         in.close();
 
-        //Store Response
+        //Store and Log Response
         responseData = response.toString();
         Log.d("RTL_LOG","Response body: " + responseData);
     }
@@ -97,7 +99,7 @@ public class HttpPostRequest extends AsyncTask<String, Void, Void> {
         return jsonFile;
     }
 
-    public static String convertStreamToString(InputStream is) throws Exception {
+    private static String convertStreamToString(InputStream is) throws Exception {
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         StringBuilder sb = new StringBuilder();
         String line;

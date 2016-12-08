@@ -10,6 +10,8 @@ import java.text.SimpleDateFormat;
 
 /**
  * Created by Jackie on 28/11/2016.
+ * This class is responsible for converting an RTL_POWER .csv output file into a .json file
+ * which is more suitable for ingest into MongoDB.
  */
 
 public class CsvConverter extends AsyncTask<String, Void, Void> {
@@ -38,10 +40,10 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
     protected void onPostExecute(Void v) {
         //Trigger HTTP Async thread after this thread is complete
         Log.d("RTL_LOG", "Starting HTTP Async thread...");
-        AsyncTaskTools.execute(new HttpPostRequest(dirName.toString(), batchID));
+        AsyncTaskTools.execute(new HttpPostRequest(dirName, batchID));
     }
 
-    public static void convert(String dirName, String batchID, String integrationInterval) throws IOException, ParseException {
+    private static void convert(String dirName, String batchID, String integrationInterval) throws IOException, ParseException {
         Log.d("RTL_LOG", "Finding .csv file in directory...");
         String csvFile = findFile(dirName, batchID);
 

@@ -27,6 +27,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Pair;
+
 import com.sdrtouch.core.SdrTcpArguments;
 import com.sdrtouch.core.devices.SdrDevice;
 import com.sdrtouch.core.devices.SdrDevice.OnStatusListener;

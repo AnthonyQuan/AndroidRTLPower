@@ -10,10 +10,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import marto.rtl_tcp_andro.R;
 
-/**
- * Created by Jackie on 2/12/2016.
- */
-
 public class LogCatTask extends AsyncTask<Void, String, Void> {
     private AtomicBoolean run = new AtomicBoolean(true);
     private TextView logView;
@@ -30,7 +26,7 @@ public class LogCatTask extends AsyncTask<Void, String, Void> {
             Process process = Runtime.getRuntime().exec("logcat RTL_LOG:V *:S -v raw");
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             StringBuilder log = new StringBuilder();
-            String line = "";
+            String line;
             while (run.get()) {
                 line = bufferedReader.readLine();
                 if (line != null) {

@@ -54,8 +54,6 @@ import marto.rtl_tcp_andro.R;
 
 public class StreamActivity extends FragmentActivity {
 
-    private static final int START_REQ_CODE = 1;
-    private BinaryRunnerService service;
     private boolean isRunning = false;
     private String batchID = null;
     private File dirName = new File(Environment.getExternalStorageDirectory() + File.separator + "RTL_POWER");
@@ -105,7 +103,7 @@ public class StreamActivity extends FragmentActivity {
     }
 
     public void RunButtonOnClick (View view) throws ExecutionException, InterruptedException, IOException, ParseException {
-        Thread workerThread = null;
+        Thread workerThread;
 
         verifyStoragePermissions(this);
 
@@ -118,58 +116,58 @@ public class StreamActivity extends FragmentActivity {
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                // load library already done at the top
-                //code to open USB device start
-                //enumerate through devices from android i.e. availableUSBDevices does the two lines below
-                //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-                //HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
-                Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(getApplicationContext(), R.xml.device_filter);
+            // load library already done at the top
+            //code to open USB device start
+            //enumerate through devices from android i.e. availableUSBDevices does the two lines below
+            //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+            //HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
+            Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(getApplicationContext(), R.xml.device_filter);
 
-                //when the time comes, replace hardcoded arguments with proper ones
-                final String[] argv = {"-f", "88M:108M:125k", dirName + "/" + batchID + ".csv"};
+            //when the time comes, replace hardcoded arguments with proper ones
+            final String[] argv = {"-f", "88M:108M:125k", dirName + "/" + batchID + ".csv"};
 
-                switch (availableUsbDevices.size()) {
-                    case 1:
-                        UsbDevice usbDevice = availableUsbDevices.iterator().next(); //get me the only usb device in availableUSBDevices
-                        Log.d("RTL_LOG","1 USB Device detected: "+ usbDevice.getDeviceName());
-                        try {
-                            //set up device connection + ask for permissions
-                            UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(getApplicationContext(), usbDevice).get();
+            switch (availableUsbDevices.size()) {
+                case 1:
+                    UsbDevice usbDevice = availableUsbDevices.iterator().next(); //get me the only usb device in availableUSBDevices
+                    Log.d("RTL_LOG","1 USB Device detected: "+ usbDevice.getDeviceName());
+                    try {
+                        //set up device connection + ask for permissions
+                        UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(getApplicationContext(), usbDevice).get();
 
-                            //print shit to screen if errored out
-                            TextView textView = (TextView) findViewById(R.id.textView);
-                            if (deviceConnection == null)
-                            {
-                                textView.append("Could not get a connection to the USB");
-                                throw new RuntimeException("Could not get a connection");
-                            }
-
-                            //otherwise USB device connection established lovelyyyy
-                            int fd = deviceConnection.getFileDescriptor(); //to be passed to c
-                            Log.d("RTL_LOG","Opening fd: "+fd);
-                            String path = usbDevice.getDeviceName();//to be passed to c
-                            Log.d("RTL_LOG","USB path: "+path);
-                            passFDandDeviceName(fd,path); //method to pass to c
-                        } catch (ExecutionException ee)
+                        //print shit to screen if errored out
+                        TextView textView = (TextView) findViewById(R.id.textView);
+                        if (deviceConnection == null)
                         {
-                            Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Execution Exception.");
+                            textView.append("Could not get a connection to the USB");
+                            throw new RuntimeException("Could not get a connection");
                         }
-                        catch (InterruptedException ie)
-                        {
-                            Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Interrupted Exception");
-                        }
-                        break;
-                    default:
-                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
-                        return;
-                }
-                //code to open USB device end
-                //call c method with hard coded arguments
-                stringFromJNI(argv);
+
+                        //otherwise USB device connection established lovelyyyy
+                        int fd = deviceConnection.getFileDescriptor(); //to be passed to c
+                        Log.d("RTL_LOG","Opening fd: "+fd);
+                        String path = usbDevice.getDeviceName();//to be passed to c
+                        Log.d("RTL_LOG","USB path: "+path);
+                        passFDandDeviceName(fd,path); //method to pass to c
+                    } catch (ExecutionException ee)
+                    {
+                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Execution Exception.");
+                    }
+                    catch (InterruptedException ie)
+                    {
+                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Interrupted Exception");
+                    }
+                    break;
+                default:
+                    Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
+                    return;
+            }
+            //code to open USB device end
+            //call c method with hard coded arguments
+            stringFromJNI(argv);
             }
         };
 
-        if (isRunning == true) //program is already running, lets  stop it
+        if (isRunning) //program is already running, lets  stop it
         {
             isRunning = false; //change status of program
             ((Button) findViewById(R.id.button)).setText("Start");
