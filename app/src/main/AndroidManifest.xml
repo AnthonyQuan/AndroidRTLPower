@@ -30,10 +30,14 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_LOGS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <uses-feature
         android:name="android.hardware.usb.host"
         android:required="false" />
+
+
 
     <application
         android:fullBackupContent="true"
@@ -67,8 +71,19 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.sdrtouch.rtlsdr.LocationMapActivity"
+            android:label="Google Map Location">
+        </activity>
+
         <service
             android:name="com.sdrtouch.rtlsdr.BinaryRunnerService"
             android:exported="false" />
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAnOpZGfZGLxTRNpS1ubdLe63Z4kq6K3J0"/>
+
+
     </application>
 </manifest>

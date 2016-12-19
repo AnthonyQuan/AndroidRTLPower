@@ -2,7 +2,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".StreamActivity"
     android:orientation="vertical"
     android:weightSum="1">
 
@@ -42,15 +41,34 @@
         android:text="abc"
         android:ems="10"
         android:id="@+id/fileName" />
-
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textPersonName"
+        android:hint="Latitude"
+        android:text="lat default text"
+        android:ems="10"
+        android:id="@+id/latitude" />
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textPersonName"
+        android:hint="Longitude"
+        android:text="Lng default text"
+        android:ems="10"
+        android:id="@+id/longitude" />
     <Button
         android:text="Run"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/button"
         android:onClick="RunButtonOnClick"/>
-
-
+    <Button
+        android:id="@+id/buttonSwitchToGoogleMaps"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="switchToGoogleMaps"
+        android:text="View Location" />
     <TextView
         android:text="Results get printed here...\n"
         android:layout_width="match_parent"

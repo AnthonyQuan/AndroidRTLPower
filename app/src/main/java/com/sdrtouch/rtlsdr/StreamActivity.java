@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -38,6 +39,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import com.google.android.gms.location.LocationServices;
 import com.sdrtouch.tools.DialogManager;
 import com.sdrtouch.tools.UsbPermissionHelper;
 import com.sdrtouch.tools.UsbPermissionObtainer;
@@ -52,11 +56,12 @@ import java.util.concurrent.ExecutionException;
 
 import marto.rtl_tcp_andro.R;
 
-public class StreamActivity extends FragmentActivity {
+public class StreamActivity extends FragmentActivity implements ConnectionCallbacks{
 
     private boolean isRunning = false;
     private String batchID = null;
     private File dirName = new File(Environment.getExternalStorageDirectory() + File.separator + "RTL_POWER");
+    GoogleApiClient GoogleApiClient;
 
     // Storage Permissions
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -64,6 +69,10 @@ public class StreamActivity extends FragmentActivity {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
+
+    //location permissions
+    private static final int REQUEST_LOCATION = 2;
+    private static String[] PERMISSIONS_LOCATION = {android.Manifest.permission.ACCESS_FINE_LOCATION};
 
     // loads the c library
     static {
@@ -86,6 +95,100 @@ public class StreamActivity extends FragmentActivity {
         logView.setMovementMethod(new ScrollingMovementMethod());
         AsyncTaskTools.execute(new LogCatTask(this));
         //experimental end
+
+
+        //code to load Google Play API start
+
+        // Create an instance of GoogleAPIClient.
+        GoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    //.addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+        GoogleApiClient.connect();
+
+        //code to load Google Play API end
+
+    }
+
+    @Override
+    public void onConnected(Bundle connectionHint) {
+
+        //on connected is called when Google Play Services API is connected ... used for location stuff
+        Log.d("RTL_LOG","Connected to Google Play Services");
+        //check permissions start
+        int locationPermission= ActivityCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_FINE_LOCATION );
+        if (locationPermission != PackageManager.PERMISSION_GRANTED) {
+            //does not have permissions, request permission
+            ActivityCompat.requestPermissions( this,
+                    PERMISSIONS_LOCATION,
+                    REQUEST_LOCATION);
+        }
+        //check permissions end
+
+        //get me the location
+        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
+        if (mLastLocation != null) {
+            Log.d("RTL_LOG","Printing Location");
+            //print location to screen
+            EditText latEditText = (EditText) findViewById(R.id.latitude);
+            EditText lngEditText = (EditText) findViewById(R.id.longitude);
+            latEditText.setText(String.valueOf(mLastLocation.getLatitude()));
+            lngEditText.setText(String.valueOf(mLastLocation.getLongitude()));
+        }
+        else
+        {
+            Log.d("RTL_LOG","Location cannot be retrieved");
+        }
+    }
+
+    /* I give up trying to get altitude
+    private double getElevationFromGoogleMaps(double longitude, double latitude) {
+        double result = Double.NaN;
+        HttpURLConnection urlConnection = null;
+
+        String link = "https://maps.googleapis.com/maps/api/elevation/"
+                + "xml?locations=" + String.valueOf(latitude)
+                + "," + String.valueOf(longitude)
+                + "&key=AIzaSyDqvZHKMQ1CWVziGirkXu7f6JbJAdBRz8k"; //this is quans API key, do not go over the free limit
+
+
+        InputStream inputStream = null;
+        try {
+            URL url = new URL(link);
+            Log.d("RTL_LOG",link);
+
+            urlConnection = (HttpURLConnection) url.openConnection();
+            Log.d("RTL_LOG","Connecting to site");
+            inputStream = new BufferedInputStream(urlConnection.getInputStream());
+            Log.d("RTL_LOG","Getting input stream");
+            StringWriter writer = new StringWriter();
+            IOUtils.copy(inputStream, writer, "UTF-8");
+            String respStr = writer.toString();
+
+            Log.d("RTL_LOG",respStr);
+            String tagOpen = "<elevation>";
+            String tagClose = "</elevation>";
+            if (respStr.indexOf(tagOpen) != -1) {
+                int start = respStr.indexOf(tagOpen) + tagOpen.length();
+                int end = respStr.indexOf(tagClose);
+                String value = respStr.substring(start, end); //elevation value sits between <elevation> tags
+                result = (double)(Double.parseDouble(value)); //parse to double
+            }
+            inputStream.close();
+            urlConnection.disconnect();
+        }
+        catch (Exception e) {
+            Log.d("RTL_LOG",inputStream.getErrorStream() );
+        }
+        return result;
+    }
+    */
+
+    @Override
+    public void onConnectionSuspended(int cause)
+    {
+        Log.d("RTL_LOG","Connection to Google Play Services suspended");
     }
 
     private static void verifyStoragePermissions(Activity activity) {
@@ -243,6 +346,19 @@ public class StreamActivity extends FragmentActivity {
     }
 
     @Override
+    protected void onStop() {
+        GoogleApiClient.disconnect();
+        super.onStop();
+
+    }
+
+    @Override
     protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+    }
+
+    public void switchToGoogleMaps(View view)
+    {
+        Intent intent = new Intent(this, LocationMapActivity.class);
+        startActivity(intent);
     }
 }
