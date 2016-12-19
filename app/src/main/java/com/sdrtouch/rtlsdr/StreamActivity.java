@@ -358,7 +358,7 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
 
     public void switchToGoogleMaps(View view)
     {
-        Intent intent = new Intent(this, LocationMapActivity.class);
+        Intent intent = new Intent(getApplicationContext(), LocationMapActivity.class);
         startActivity(intent);
     }
 }
