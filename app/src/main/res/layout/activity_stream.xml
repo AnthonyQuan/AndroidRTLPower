@@ -10,37 +10,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="textPersonName"
-        android:hint="Freq (lower)"
-        android:text="123"
+        android:hint="Altitude1"
+        android:text="alt1 default text"
         android:ems="10"
-        android:id="@+id/freqLower" />
+        android:id="@+id/alitude1" />
 
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textPersonName"
-        android:hint="Freq (higher)"
-        android:text="456"
-        android:ems="10"
-        android:id="@+id/freqHigher" />
-
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textPersonName"
-        android:hint="Bins"
-        android:text="789"
-        android:ems="10"
-        android:id="@+id/bins" />
-
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textPersonName"
-        android:hint="FileName"
-        android:text="abc"
-        android:ems="10"
-        android:id="@+id/fileName" />
     <EditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
