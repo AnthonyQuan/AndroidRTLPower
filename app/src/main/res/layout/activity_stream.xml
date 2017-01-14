@@ -5,32 +5,6 @@
     android:orientation="vertical"
     android:weightSum="1">
 
-
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textPersonName"
-        android:hint="Altitude1"
-        android:text="alt1 default text"
-        android:ems="10"
-        android:id="@+id/alitude1" />
-
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textPersonName"
-        android:hint="Latitude"
-        android:text="lat default text"
-        android:ems="10"
-        android:id="@+id/latitude" />
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:inputType="textPersonName"
-        android:hint="Longitude"
-        android:text="Lng default text"
-        android:ems="10"
-        android:id="@+id/longitude" />
     <Button
         android:text="Run"
         android:layout_width="match_parent"

@@ -40,7 +40,6 @@ import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -74,9 +73,10 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
 
-    //location permissions
+    //location permissions and variables
     private static final int REQUEST_LOCATION = 2;
     private static String[] PERMISSIONS_LOCATION = {android.Manifest.permission.ACCESS_FINE_LOCATION};
+    Location mLastLocation;
 
     // loads the c library
     static {
@@ -125,9 +125,6 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         if ( pressureSensor != null)
         {
             Log.d("RTL_LOG","Pressure sensor found");
-            //registering the listener to the sensor, will get me readings from the sensor
-            //the onAccuracyChanged method or onSensorChanged method will be called when the sensor values change, in those methods i can access sensor values
-            sensorManager.registerListener(this, pressureSensor, 900000000);
 
         }
         else{
@@ -146,10 +143,11 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
     {
         //this method gets called automatically under the hood when the sensor's values change
         float pressure = event.values[0];
-        //Log.d("RTL_LOG","pressure 0: " + pressure); leave commented otherwise debug log will get fucked
+        Log.d("RTL_LOG","pressure reading: " + pressure); //leave commented otherwise debug log will get flooded
         float altitude = sensorManager.getAltitude(sensorManager.PRESSURE_STANDARD_ATMOSPHERE, pressure); //returns altitude in meters
-        Log.d("RTL_LOG","altitude: " + altitude); //leave commented otherwise debug log will get fucked
-
+        Log.d("RTL_LOG","altitude: " + altitude); //leave commented otherwise debug log will get flooded
+        //I have a reading, stop getting more readings
+        sensorManager.unregisterListener(this);
     }
 
     @Override
@@ -168,14 +166,10 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         //check permissions end
 
         //get me the location
-        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
+        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
         if (mLastLocation != null) {
-            Log.d("RTL_LOG","Printing Location");
-            //print location to screen
-            EditText latEditText = (EditText) findViewById(R.id.latitude);
-            EditText lngEditText = (EditText) findViewById(R.id.longitude);
-            latEditText.setText(String.valueOf(mLastLocation.getLatitude()));
-            lngEditText.setText(String.valueOf(mLastLocation.getLongitude()));
+            Log.d("RTL_LOG","latitude: " + mLastLocation.getLatitude());
+            Log.d("RTL_LOG","longitude: "+ mLastLocation.getLongitude() );
         }
         else
         {
@@ -293,6 +287,11 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
             batchID = getbatchID(); //Set batch ID to current datetime
             ((Button) findViewById(R.id.button)).setText("Stop");
 
+            //registering the listener to the sensor, will get me readings from the sensor
+            //the onAccuracyChanged method or onSensorChanged method will be called when the sensor values change, in those methods i can access sensor values
+            sensorManager.registerListener(this, pressureSensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+
             //start calling rtl power in another thread
             workerThread = new Thread(runnable);
             workerThread.start();
@@ -320,19 +319,16 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, pressureSensor, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        sensorManager.unregisterListener(this);
     }
 
     @Override
     protected void onStop() {
         GoogleApiClient.disconnect();
-        sensorManager.unregisterListener(this);
         super.onStop();
     }
 
