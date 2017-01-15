@@ -18,18 +18,24 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
 
     private String dirName;
     private String batchID;
+    private float altitude;
+    private double latitude;
+    private double longitude;
     private String integrationInterval;
 
-    public CsvConverter(String dirName, String batchID, String integrationInterval) {
+    public CsvConverter(String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) {
         this.dirName = dirName;
         this.batchID = batchID;
+        this.altitude = altitude;
+        this.latitude = latitude;
+        this.longitude = longitude;
         this.integrationInterval = integrationInterval;
     }
 
     @Override
     protected Void doInBackground(String[] params) {
         try {
-            convert(dirName, batchID, integrationInterval);
+            convert(dirName, batchID, altitude, latitude, longitude, integrationInterval);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -43,7 +49,7 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
         AsyncTaskTools.execute(new HttpPostRequest(dirName, batchID));
     }
 
-    private static void convert(String dirName, String batchID, String integrationInterval) throws IOException, ParseException {
+    private static void convert(String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) throws IOException, ParseException {
         Log.d("RTL_LOG", "Finding .csv file in directory...");
         String csvFile = findFile(dirName, batchID);
 
@@ -83,7 +89,7 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
                     int frequencyStep = (int)Double.parseDouble(entry[4]);
 
                     String valuesHeader = "{\"frequencyLow\":\"" + frequencyLow + "\",\"frequencyHigh\":\"" + entry[3] + "\",\"frequencyStep\":\"" + frequencyStep + "\",\"metricValues\":[";
-                    String valuesBody = "{\"" + Integer.toString(frequencyLow + (frequencyStep * 0)) + "\":" + entry[6] + "}," +  "{\"" + Integer.toString(frequencyLow + (frequencyStep * 1)) + "\":" + entry[7] + "}," +
+                    String valuesBody = "{\"" + Integer.toString(frequencyLow) + "\":" + entry[6] + "}," +  "{\"" + Integer.toString(frequencyLow + (frequencyStep)) + "\":" + entry[7] + "}," +
                             "{\"" + Integer.toString(frequencyLow + (frequencyStep * 2)) + "\":" + entry[8] + "}," + "{\"" + Integer.toString(frequencyLow + (frequencyStep * 3)) + "\":" + entry[9] + "}," +
                             "{\"" + Integer.toString(frequencyLow + (frequencyStep * 4)) + "\":" + entry[10] + "}," + "{\"" + Integer.toString(frequencyLow + (frequencyStep * 5)) + "\":" + entry[11] + "}," +
                             "{\"" + Integer.toString(frequencyLow + (frequencyStep * 6)) + "\":" + entry[12] + "}," + "{\"" + Integer.toString(frequencyLow + (frequencyStep * 7)) + "\":" + entry[13] + "}," +
@@ -111,7 +117,7 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
 
                     String integrationHeader = "{\"unixTimestamp\":\"" + unixTime + "\",\"date\":\"" + entry[0] + "\",\"time\":\"" + entry[1] + "\",\"totalSamples\":\"" + entry[5] + "\",\"metricSeries\":[";
                     String valuesHeader = "{\"frequencyLow\":\"" + frequencyLow + "\",\"frequencyHigh\":\"" + entry[3] + "\",\"frequencyStep\":\"" + frequencyStep + "\",\"metricValues\":[";
-                    String valuesBody = "{\"" + Integer.toString(frequencyLow + (frequencyStep * 0)) + "\":" + entry[6] + "}," +  "{\"" + Integer.toString(frequencyLow + (frequencyStep * 1)) + "\":" + entry[7] + "}," +
+                    String valuesBody = "{\"" + Integer.toString(frequencyLow) + "\":" + entry[6] + "}," +  "{\"" + Integer.toString(frequencyLow + (frequencyStep)) + "\":" + entry[7] + "}," +
                             "{\"" + Integer.toString(frequencyLow + (frequencyStep * 2)) + "\":" + entry[8] + "}," + "{\"" + Integer.toString(frequencyLow + (frequencyStep * 3)) + "\":" + entry[9] + "}," +
                             "{\"" + Integer.toString(frequencyLow + (frequencyStep * 4)) + "\":" + entry[10] + "}," + "{\"" + Integer.toString(frequencyLow + (frequencyStep * 5)) + "\":" + entry[11] + "}," +
                             "{\"" + Integer.toString(frequencyLow + (frequencyStep * 6)) + "\":" + entry[12] + "}," + "{\"" + Integer.toString(frequencyLow + (frequencyStep * 7)) + "\":" + entry[13] + "}," +
@@ -145,7 +151,8 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
             }
 
             //Add JSON header fields
-            String jsonHeader = "{\"BATCH_ID\":\"" + batchID + "\",\"integrationInterval\":\"" + integrationInterval + "\",\"integrations\":[";
+            String jsonHeader = "{\"BATCH_ID\":\"" + batchID + "\",\"altitude\":\"" + altitude + "\",\"latitude\":\"" + latitude +
+                    "\",\"longitude\":\"" + longitude + "\",\"integrationInterval\":\"" + integrationInterval + "\",\"integrations\":[";
             sb.setLength(sb.length() -1); //Remove final comma as there are no more JSON objects to be added
             sb.append("]}"); //Close off JSON Array and JSON Object
 

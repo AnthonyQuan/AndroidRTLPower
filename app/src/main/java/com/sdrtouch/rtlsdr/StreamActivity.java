@@ -21,7 +21,6 @@
 package com.sdrtouch.rtlsdr;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
@@ -45,7 +44,6 @@ import android.widget.TextView;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.location.LocationServices;
-import com.sdrtouch.tools.DialogManager;
 import com.sdrtouch.tools.UsbPermissionHelper;
 import com.sdrtouch.tools.UsbPermissionObtainer;
 
@@ -64,7 +62,12 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
     private boolean isRunning = false;
     private String batchID = null;
     private File dirName = new File(Environment.getExternalStorageDirectory() + File.separator + "RTL_POWER");
-    GoogleApiClient GoogleApiClient;
+    private GoogleApiClient GoogleApiClient;
+    private SensorManager sensorManager;
+    private Sensor pressureSensor;
+    private float altitude = 0;
+    private double latitude = 0.000000;
+    private double longitude = 0.000000;
 
     // Storage Permissions
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -73,20 +76,17 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
 
-    //location permissions and variables
+    // Location Permissions
     private static final int REQUEST_LOCATION = 2;
-    private static String[] PERMISSIONS_LOCATION = {android.Manifest.permission.ACCESS_FINE_LOCATION};
-    Location mLastLocation;
+    private static String[] PERMISSIONS_LOCATION = {
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+    };
 
     // loads the c library
     static {
         System.loadLibrary("rtlSdrAndroid");
     }
-
-    //sensors and altitude variables
-    private SensorManager sensorManager;
-    private Sensor pressureSensor;
-
 
     //c methods
     public native String stringFromJNI(String[] argv);
@@ -99,15 +99,11 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stream);
 
-        //experimental code to update textview with logs start
+        //experimental code to update textView with logs start
         TextView logView = (TextView) findViewById(R.id.textView);
         logView.setMovementMethod(new ScrollingMovementMethod());
-        AsyncTaskTools.execute(new LogCatTask(this));
-        //experimental end
-
 
         //code to load Google Play API start
-
         // Create an instance of GoogleAPIClient.
         GoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -117,90 +113,84 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         GoogleApiClient.connect();
 
         //code to load Google Play API end
-
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-
         pressureSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
 
-        if ( pressureSensor != null)
-        {
+        if (pressureSensor != null) {
             Log.d("RTL_LOG","Pressure sensor found");
-
         }
-        else{
+        else {
             Log.d("RTL_LOG","No pressure sensor found. Unable to calculate altitude");
         }
+
+        AsyncTaskTools.execute(new LogCatTask(this));
     }
+
     @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy)
-    {
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
         //this method gets called automatically under the hood when the sensor's accuracy change
         //don't need to do anything for our implementation
-
     }
+
     @Override
-    public void onSensorChanged(SensorEvent event)
-    {
+    public void onSensorChanged(SensorEvent event) {
         //this method gets called automatically under the hood when the sensor's values change
         float pressure = event.values[0];
         Log.d("RTL_LOG","pressure reading: " + pressure); //leave commented otherwise debug log will get flooded
-        float altitude = sensorManager.getAltitude(sensorManager.PRESSURE_STANDARD_ATMOSPHERE, pressure); //returns altitude in meters
+        altitude = sensorManager.getAltitude(sensorManager.PRESSURE_STANDARD_ATMOSPHERE, pressure); //returns altitude in meters
         Log.d("RTL_LOG","altitude: " + altitude); //leave commented otherwise debug log will get flooded
+
         //I have a reading, stop getting more readings
         sensorManager.unregisterListener(this);
     }
 
     @Override
     public void onConnected(Bundle connectionHint) {
-
-        //on connected is called when Google Play Services API is connected ... used for location stuff
+        //on connected is called when Google Play Services API is connected, used for location stuff
         Log.d("RTL_LOG","Connected to Google Play Services");
-        //check permissions start
-        int locationPermission= ActivityCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_FINE_LOCATION );
-        if (locationPermission != PackageManager.PERMISSION_GRANTED) {
-            //does not have permissions, request permission
-            ActivityCompat.requestPermissions( this,
+
+        // Check if we have location permissions
+        int fineLocationPermission = ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION);
+        int coarseLocationPermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
+        if (fineLocationPermission != PackageManager.PERMISSION_GRANTED || coarseLocationPermission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    this,
                     PERMISSIONS_LOCATION,
                     REQUEST_LOCATION);
         }
-        //check permissions end
 
-        //get me the location
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
+        //get me the last location
+        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
         if (mLastLocation != null) {
-            Log.d("RTL_LOG","latitude: " + mLastLocation.getLatitude());
-            Log.d("RTL_LOG","longitude: "+ mLastLocation.getLongitude() );
+            latitude = mLastLocation.getLatitude();
+            Log.d("RTL_LOG","latitude: " + latitude);
+            longitude = mLastLocation.getLongitude();
+            Log.d("RTL_LOG","longitude: " + longitude);
         }
-        else
-        {
+        else {
             Log.d("RTL_LOG","Location cannot be retrieved");
         }
     }
 
     @Override
-    public void onConnectionSuspended(int cause)
-    {
+    public void onConnectionSuspended(int cause) {
         Log.d("RTL_LOG","Connection to Google Play Services suspended");
-    }
-
-    private static void verifyStoragePermissions(Activity activity) {
-        // Check if we have write permission
-        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
-            ActivityCompat.requestPermissions(
-                    activity,
-                    PERMISSIONS_STORAGE,
-                    REQUEST_EXTERNAL_STORAGE
-            );
-        }
     }
 
     public void RunButtonOnClick (View view) throws ExecutionException, InterruptedException, IOException, ParseException {
         Thread workerThread;
 
-        verifyStoragePermissions(this);
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    this,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
 
         //Create Working Directory
         if (!dirName.exists()) {
@@ -211,59 +201,56 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                // load library already done at the top
-                //code to open USB device start
-                //enumerate through devices from android i.e. availableUSBDevices does the two lines below
-                //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-                //HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
-                Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(getApplicationContext(), R.xml.device_filter);
+            // load library already done at the top
+            //code to open USB device start
+            //enumerate through devices from android i.e. availableUSBDevices does the two lines below
+            //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+            //HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
+            Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(getApplicationContext(), R.xml.device_filter);
 
-                //when the time comes, replace hardcoded arguments with proper ones
-                final String[] argv = {"-f", "88M:108M:125k", dirName + "/" + batchID + ".csv"};
+            //when the time comes, replace hardcoded arguments with proper ones
+            final String[] argv = {"-f", "88M:108M:125k", dirName + "/" + batchID + ".csv"};
 
-                switch (availableUsbDevices.size()) {
-                    case 1:
-                        UsbDevice usbDevice = availableUsbDevices.iterator().next(); //get me the only usb device in availableUSBDevices
-                        Log.d("RTL_LOG","1 USB Device detected: "+ usbDevice.getDeviceName());
-                        try {
-                            //set up device connection + ask for permissions
-                            UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(getApplicationContext(), usbDevice).get();
+            switch (availableUsbDevices.size()) {
+                case 1:
+                    UsbDevice usbDevice = availableUsbDevices.iterator().next(); //get me the only usb device in availableUSBDevices
+                    Log.d("RTL_LOG","1 USB Device detected: "+ usbDevice.getDeviceName());
+                    try {
+                        //set up device connection + ask for permissions
+                        UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(getApplicationContext(), usbDevice).get();
 
-                            //print shit to screen if errored out
-                            TextView textView = (TextView) findViewById(R.id.textView);
-                            if (deviceConnection == null)
-                            {
-                                textView.append("Could not get a connection to the USB");
-                                throw new RuntimeException("Could not get a connection");
-                            }
-
-                            //otherwise USB device connection established lovelyyyy
-                            int fd = deviceConnection.getFileDescriptor(); //to be passed to c
-                            Log.d("RTL_LOG","Opening fd: "+fd);
-                            String path = usbDevice.getDeviceName();//to be passed to c
-                            Log.d("RTL_LOG","USB path: "+path);
-                            passFDandDeviceName(fd,path); //method to pass to c
-                        } catch (ExecutionException ee)
-                        {
-                            Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Execution Exception.");
+                        //print shit to screen if errored out
+                        TextView textView = (TextView) findViewById(R.id.textView);
+                        if (deviceConnection == null) {
+                            textView.append("Could not get a connection to the USB");
+                            throw new RuntimeException("Could not get a connection");
                         }
-                        catch (InterruptedException ie)
-                        {
-                            Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Interrupted Exception");
-                        }
-                        break;
-                    default:
-                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
-                        return;
-                }
-                //code to open USB device end
-                //call c method with hard coded arguments
-                stringFromJNI(argv);
+
+                        //otherwise USB device connection established lovelyyyy
+                        int fd = deviceConnection.getFileDescriptor(); //to be passed to c
+                        Log.d("RTL_LOG","Opening fd: "+fd);
+                        String path = usbDevice.getDeviceName();//to be passed to c
+                        Log.d("RTL_LOG","USB path: "+path);
+                        passFDandDeviceName(fd,path); //method to pass to c
+                    }
+                    catch (ExecutionException ee) {
+                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Execution Exception.");
+                    }
+                    catch (InterruptedException ie) {
+                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Interrupted Exception");
+                    }
+                    break;
+                default:
+                    Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
+                    return;
+            }
+            //code to open USB device end
+            //call c method with hard coded arguments
+            stringFromJNI(argv);
             }
         };
 
-        if (isRunning) //program is already running, lets  stop it
-        {
+        if (isRunning) { //program is already running, lets stop it
             isRunning = false; //change status of program
             ((Button) findViewById(R.id.button)).setText("Start");
             staphRTLPOWER();// set a global volatile var do_exit in c to quit.
@@ -279,18 +266,16 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
             //Trigger CsvToJson Async thread
             //HTTP Async thread will be triggered after this thread is complete
             Log.d("RTL_LOG", "rtl_power terminated. Begin conversion...");
-            AsyncTaskTools.execute(new CsvConverter(dirName.toString(), batchID, "10s"));
+            AsyncTaskTools.execute(new CsvConverter(dirName.toString(), batchID, altitude, latitude, longitude, "10s"));
         }
-        else //program is not running, lets start it
-        {
+        else { //program is not running, lets start it
             isRunning = true;
-            batchID = getbatchID(); //Set batch ID to current datetime
+            batchID = getBatchID(); //Set batch ID to current datetime
             ((Button) findViewById(R.id.button)).setText("Stop");
 
             //registering the listener to the sensor, will get me readings from the sensor
             //the onAccuracyChanged method or onSensorChanged method will be called when the sensor values change, in those methods i can access sensor values
             sensorManager.registerListener(this, pressureSensor, SensorManager.SENSOR_DELAY_NORMAL);
-
 
             //start calling rtl power in another thread
             workerThread = new Thread(runnable);
@@ -298,13 +283,10 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         }
     }
 
-    private static String getbatchID() {
+    private static String getBatchID() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd-HHmmss");
         Date date = new Date();
         return sdf.format(date);
-    }
-
-    public void showDialog(final DialogManager.dialogs id, final String ... args) {
     }
 
     @Override
