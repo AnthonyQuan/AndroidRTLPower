@@ -57,11 +57,13 @@ import java.util.concurrent.ExecutionException;
 
 import marto.rtl_tcp_andro.R;
 
-public class StreamActivity extends FragmentActivity implements ConnectionCallbacks, SensorEventListener {
+public class StreamActivity extends FragmentActivity implements ConnectionCallbacks, SensorEventListener, OnTaskCompleted {
 
     private boolean isRunning = false;
     private String batchID = null;
     private File dirName = new File(Environment.getExternalStorageDirectory() + File.separator + "RTL_POWER");
+    private Thread workerThread;
+    private Button startStopButton;
     private GoogleApiClient GoogleApiClient;
     private SensorManager sensorManager;
     private Sensor pressureSensor;
@@ -123,6 +125,24 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
             Log.d("RTL_LOG","No pressure sensor found. Unable to calculate altitude");
         }
 
+        startStopButton = (Button)findViewById(R.id.button);
+
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    this,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
+
+        //Create Working Directory
+        if (!dirName.exists()) {
+            dirName.mkdirs();
+        }
+
         AsyncTaskTools.execute(new LogCatTask(this));
     }
 
@@ -178,30 +198,12 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         Log.d("RTL_LOG","Connection to Google Play Services suspended");
     }
 
-    public void RunButtonOnClick (View view) throws ExecutionException, InterruptedException, IOException, ParseException {
-        Thread workerThread;
-
-        // Check if we have write permission
-        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
-            ActivityCompat.requestPermissions(
-                    this,
-                    PERMISSIONS_STORAGE,
-                    REQUEST_EXTERNAL_STORAGE
-            );
-        }
-
-        //Create Working Directory
-        if (!dirName.exists()) {
-            dirName.mkdirs();
-        }
-
+    public void runButtonOnClick(View view) throws ExecutionException, InterruptedException, IOException, ParseException {
         //define a new runnable class which defines what the worker thread does
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-            // load library already done at the top
+            //load library already done at the top
             //code to open USB device start
             //enumerate through devices from android i.e. availableUSBDevices does the two lines below
             //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -252,26 +254,22 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
 
         if (isRunning) { //program is already running, lets stop it
             isRunning = false; //change status of program
-            ((Button) findViewById(R.id.button)).setText("Start");
+            startStopButton.setText("Start");
             staphRTLPOWER();// set a global volatile var do_exit in c to quit.
 
             Log.d("RTL_LOG", "Waiting for rtl_power to terminate. Begin loop...");
             int executionStatus;
             do {
                 executionStatus = readExecutionFinished();
-                //Implement wait
-                //Logging such as Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
             } while (executionStatus == 0);
 
             //Trigger CsvToJson Async thread
-            //HTTP Async thread will be triggered after this thread is complete
             Log.d("RTL_LOG", "rtl_power terminated. Begin conversion...");
             AsyncTaskTools.execute(new CsvConverter(dirName.toString(), batchID, altitude, latitude, longitude, "10s"));
         }
         else { //program is not running, lets start it
-            isRunning = true;
-            batchID = getBatchID(); //Set batch ID to current datetime
-            ((Button) findViewById(R.id.button)).setText("Stop");
+            startStopButton.setText("Stop");
+            startStopButton.setClickable(false);
 
             //registering the listener to the sensor, will get me readings from the sensor
             //the onAccuracyChanged method or onSensorChanged method will be called when the sensor values change, in those methods i can access sensor values
@@ -279,8 +277,18 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
 
             //start calling rtl power in another thread
             workerThread = new Thread(runnable);
-            workerThread.start();
+
+            AsyncTaskTools.execute(new SyncTime(StreamActivity.this));
         }
+    }
+
+    @Override
+    public void onTaskCompleted() {
+        Log.d("RTL_LOG", "Device synchronised. Starting rtl_power execution...");
+        batchID = getBatchID(); //Set batch ID to current datetime
+        workerThread.start();
+        isRunning = true;
+        startStopButton.setClickable(true);
     }
 
     private static String getBatchID() {
