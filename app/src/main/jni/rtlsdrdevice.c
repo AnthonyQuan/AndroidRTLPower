@@ -318,7 +318,7 @@ int globalFD;
 char * globalDevicePath;
 
 JNIEXPORT void JNICALL
-Java_com_sdrtouch_rtlsdr_StreamActivity_passFDandDeviceName(JNIEnv *env, jobject instance,jint fd_,jstring path_)
+Java_com_sdrtouch_rtlsdr_RTLPower_passFDandDeviceName(JNIEnv *env, jobject instance,jint fd_,jstring path_)
 {
     //set up some dirty global variables found just above this metohd
     globalFD = fd_;
@@ -331,11 +331,18 @@ Java_com_sdrtouch_rtlsdr_StreamActivity_staphRTLPOWER(JNIEnv *env, jobject insta
 {
     do_exit=1;
 }
+JNIEXPORT void JNICALL
+Java_com_sdrtouch_rtlsdr_StreamActivity_resetRTLPOWER(JNIEnv *env, jobject instance)
+{
+    do_exit=0;
+}
 
 static volatile int executionFinished = 0;
 
-JNIEXPORT jstring JNICALL
-Java_com_sdrtouch_rtlsdr_StreamActivity_stringFromJNI( JNIEnv* env, jobject object, jobjectArray stringArray)
+static int backgroundProcessingFailed = 0;
+
+JNIEXPORT void JNICALL
+Java_com_sdrtouch_rtlsdr_RTLPower_beginRTLPower( JNIEnv* env, jobject object, jobjectArray stringArray)
 {
     //Call main function for rtl_power
     // your argc
@@ -354,18 +361,23 @@ Java_com_sdrtouch_rtlsdr_StreamActivity_stringFromJNI( JNIEnv* env, jobject obje
         (*env)->DeleteLocalRef(env, string );
     }
 
+    //debug logs
+    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "ArgCount in C: %i", ArgCount);
+    for( i = 0; i < ArgCount; ++i ) {
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "ArgVar in C: %s", argv[i + 1]);
+    }
+
+
+
     // call the legacy "main" function
     executionFinished = 0;
     mainCOPIED( ArgCount + 1, argv );
 	executionFinished = 1;
+    //__android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Cleaned up memory in C");
 
-    // cleanup
-    for( i = 0; i < ArgCount; ++i ) free( argv[ i + 1 ] );
-    free( argv );
-
-    //quan 123 end
-
-    return (*env)->NewStringUTF(env, "Hello from JNI !\n");
+    //for( i = 0; i < ArgCount; ++i ) {
+    //    free(argv[i]);
+    //}
 }
 
 JNIEXPORT jint JNICALL
@@ -374,18 +386,12 @@ Java_com_sdrtouch_rtlsdr_StreamActivity_readExecutionFinished(JNIEnv *env, jobje
     return executionFinished;
 }
 
-void testThis()
+JNIEXPORT jint JNICALL
+Java_com_sdrtouch_rtlsdr_RTLPower_checkForFailure(JNIEnv *env, jobject instance)
 {
-    int someNumber=0;
-    unsigned int sleepforthislong=2;
-    while (someNumber != 200)
-    {
-        LOGI("fuck me\n");
-        sleep(sleepforthislong);
-        someNumber += sleepforthislong;
-    }
-
+    return backgroundProcessingFailed;
 }
+
 
 //below is a copy paste from convenience
 
@@ -1316,6 +1322,7 @@ void frequency_range(char *arg, double crop)
     }
     if (tune_count > MAX_TUNES) {
         __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Error: bandwidth too wide.\n");
+        backgroundProcessingFailed=1;
         //exit(1);
         return;
     }
@@ -1336,6 +1343,7 @@ void frequency_range(char *arg, double crop)
         ts->avg = (long*)malloc((1<<bin_e) * sizeof(long));
         if (!ts->avg) {
             __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Error: malloc.\n");
+            backgroundProcessingFailed=1;
             //exit(1);
             return;
         }
@@ -1345,6 +1353,7 @@ void frequency_range(char *arg, double crop)
         ts->buf8 = (uint8_t*)malloc(buf_len * sizeof(uint8_t));
         if (!ts->buf8) {
             __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Error: malloc.\n");
+            backgroundProcessingFailed=1;
             //exit(1);
             return;
         }
@@ -1565,12 +1574,12 @@ void csv_dbm(struct tuning_state *ts)
     bw2 = (int)(((double)ts->rate * (double)bin_count) / (len * 2 * ds));
     fprintf(file, "%i, %i, %.2f, %i, ", ts->freq - bw2, ts->freq + bw2,
             (double)ts->rate / (double)(len*ds), ts->samples);
-    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "printing Hz low, Hz high, Hz step, samples");
+    /*__android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "printing Hz low, Hz high, Hz step, samples");*/
 
     // something seems off with the dbm math
     i1 = 0 + (int)((double)len * ts->crop * 0.5);
     i2 = (len-1) - (int)((double)len * ts->crop * 0.5);
-    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "printing individual samples");
+    /*__android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "printing individual samples");*/
     for (i=i1; i<=i2; i++) {
         dbm  = (double)ts->avg[i];
         dbm /= (double)ts->rate;
@@ -1619,7 +1628,22 @@ int mainCOPIED(int argc, char **argv)
     double (*window_fn)(int, int) = rectangle;
     freq_optarg = "";
 
+    for( i = 0; i < argc; ++i ) {
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "ArgVar[%d] in Main: %s",i,  argv[i]);
+    }
+    //set freq
+    f_set=1;
+    freq_optarg = argv[2];
+
+    //set single shot
+    single=1;
+    //set output file
+    filename=argv[4];
+
+
+/*
     while ((opt = getopt(argc, argv, "f:i:s:t:d:g:p:e:w:c:F:1PDOh")) != -1) {
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "getOpt in C: %c", (char)opt);
         switch (opt) {
             case 'f': // lower:upper:bin_size
                 freq_optarg = strdup(optarg);
@@ -1693,15 +1717,18 @@ int mainCOPIED(int argc, char **argv)
                 break;
         }
     }
+    */
 
     if (!f_set) {
         __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "No frequency range provided.\n");
+        backgroundProcessingFailed=1;
         //exit(1);
         return 0;
     }
 
     if ((crop < 0.0) || (crop > 1.0)) {
         __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Crop value outside of 0 to 1.\n");
+        backgroundProcessingFailed=1;
         //exit(1);
         return 0;
     }
@@ -1710,13 +1737,13 @@ int mainCOPIED(int argc, char **argv)
 
     if (tune_count == 0) {
         usage();}
-
+/*
     if (argc <= optind) {
         filename = "-";
     } else {
         filename = argv[optind];
     }
-
+*/
     if (interval < 1) {
         interval = 1;}
 
@@ -1728,6 +1755,7 @@ int mainCOPIED(int argc, char **argv)
     //}
 
     if (dev_index < 0) {
+        backgroundProcessingFailed=1;
         //exit(1);
         return 0;
     }
@@ -1736,6 +1764,7 @@ int mainCOPIED(int argc, char **argv)
     r = rtlsdr_open2(&dev, globalFD, globalDevicePath);
     if (r < 0) {
         __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Failed to open rtlsdr device #%d.\n", dev_index);
+        backgroundProcessingFailed=1;
         //exit(1);
         return 0;
     }
@@ -1779,6 +1808,7 @@ int mainCOPIED(int argc, char **argv)
         file = fopen(filename, "wb");
         if (!file) {
             __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Failed to open %s\n", filename);
+            backgroundProcessingFailed=1;
             //exit(1);
             return 0;
         }
@@ -1807,10 +1837,10 @@ int mainCOPIED(int argc, char **argv)
         // time, Hz low, Hz high, Hz step, samples, dbm, dbm, ...
         cal_time = localtime(&time_now);
         strftime(t_str, 50, "%Y-%m-%d, %H:%M:%S", cal_time);
-        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "==== CSV row start ====");
+        /*__android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "==== CSV row start ====");*/
         for (i=0; i<tune_count; i++) {
             fprintf(file, "%s, ", t_str);
-            __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG","printing timestamp");
+            /*__android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG","printing timestamp");*/
             csv_dbm(&tunes[i]);
         }
         fflush(file);

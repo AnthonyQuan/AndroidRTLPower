@@ -21,55 +21,91 @@
 package com.sdrtouch.rtlsdr;
 
 import android.Manifest;
-import android.content.Intent;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
 import android.location.Location;
+import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.location.LocationServices;
-import com.sdrtouch.tools.UsbPermissionHelper;
-import com.sdrtouch.tools.UsbPermissionObtainer;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.io.File;
-import java.io.IOException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import marto.rtl_tcp_andro.R;
 
-public class StreamActivity extends FragmentActivity implements ConnectionCallbacks, SensorEventListener, OnTaskCompleted {
+public class StreamActivity
+        extends
+            AppCompatActivity
+        implements
+            ConnectionCallbacks,
+            GoogleApiClient.OnConnectionFailedListener,
+            SensorEventListener,
+            GoogleMap.OnMyLocationButtonClickListener,
+            OnMapReadyCallback,
+            ActivityCompat.OnRequestPermissionsResultCallback {
+    /*===================================================
+     * Global Variables START
+     *===================================================*/
 
-    private boolean isRunning = false;
+    //General UI variable(s)
+    private Button RunNowButton;
+    private TextView StatusTextGPS;
+    private TextView StatusTextAltitude;
+    private TextView StatusTextRecord;
+    private TextView StatusTextUpload;
+    private CheckBox CheckboxGPS;
+    private CheckBox CheckboxAltitude;
+    private CheckBox CheckboxRecord;
+    private CheckBox CheckboxUpload;
+
+
+    //Run button status variable(s)
+    public boolean isRunning = false;
+
+    //Variables required for recording the spectrum
     private String batchID = null;
-    private File dirName = new File(Environment.getExternalStorageDirectory() + File.separator + "RTL_POWER");
-    private Thread workerThread;
-    private Button startStopButton;
+    public File dirName = new File(Environment.getExternalStorageDirectory() + File.separator + "RTL_POWER");
+
+    //Google Play Services GPS variable(s)
     private GoogleApiClient GoogleApiClient;
+    private double latitude = 0.000000;
+    private double longitude = 0.000000;
+
+    //Altitude Sensor variable(s)
     private SensorManager sensorManager;
     private Sensor pressureSensor;
     private float altitude = 0;
-    private double latitude = 0.000000;
-    private double longitude = 0.000000;
 
     // Storage Permissions
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -85,67 +121,91 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
             Manifest.permission.ACCESS_COARSE_LOCATION,
     };
 
-    // loads the c library
+    //Loads the C library
     static {
         System.loadLibrary("rtlSdrAndroid");
     }
 
-    //c methods
-    public native String stringFromJNI(String[] argv);
-    public native void passFDandDeviceName(int fd_, String path_);
+    //C methods
     public native void staphRTLPOWER();
+    public native void resetRTLPOWER();
     public native int readExecutionFinished();
 
+    /*===================================================
+     * Global Variables END
+     *===================================================*/
+    /*===================================================
+     * Main Entry Point to App START
+     *===================================================*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_stream);
 
-        //experimental code to update textView with logs start
-        TextView logView = (TextView) findViewById(R.id.textView);
-        logView.setMovementMethod(new ScrollingMovementMethod());
+        //Show Google Maps Fragment on app start up
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        mapFragment.getMapAsync(this);
 
-        //code to load Google Play API start
-        // Create an instance of GoogleAPIClient.
-        GoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                //.addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-        GoogleApiClient.connect();
-
-        //code to load Google Play API end
+        //Initialise global variables
+        RunNowButton = (Button)findViewById(R.id.ButtonRun);
+        StatusTextGPS = (TextView) findViewById(R.id.textViewGPS);
+        StatusTextAltitude = (TextView) findViewById(R.id.textViewAltitude);
+        StatusTextRecord = (TextView) findViewById(R.id.textViewRecord);
+        StatusTextUpload = (TextView) findViewById(R.id.textViewUpload);
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         pressureSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
-
-        if (pressureSensor != null) {
-            Log.d("RTL_LOG","Pressure sensor found");
-        }
-        else {
-            Log.d("RTL_LOG","No pressure sensor found. Unable to calculate altitude");
-        }
-
-        startStopButton = (Button)findViewById(R.id.button);
-
-        // Check if we have write permission
-        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
-            ActivityCompat.requestPermissions(
-                    this,
-                    PERMISSIONS_STORAGE,
-                    REQUEST_EXTERNAL_STORAGE
-            );
-        }
-
-        //Create Working Directory
-        if (!dirName.exists()) {
-            dirName.mkdirs();
-        }
-
+        CheckboxGPS = (CheckBox) findViewById(R.id.checkBoxGPS);
+        CheckboxAltitude = (CheckBox) findViewById(R.id.checkBoxAltitude);
+        CheckboxRecord = (CheckBox) findViewById(R.id.checkBoxRecord);
+        CheckboxUpload = (CheckBox) findViewById(R.id.checkBoxUpload);
+        GoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        //Setup Debug Log to automatically update
+        TextView debugLog = (TextView) findViewById(R.id.textView);
+        debugLog.setMovementMethod(new ScrollingMovementMethod());
         AsyncTaskTools.execute(new LogCatTask(this));
+
+
+    }
+    /*===================================================
+     * Main Entry Point to App END
+     *===================================================*/
+    /*===================================================
+     * Other Entry and Exit Points to App START
+     *===================================================*/
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        if( GoogleApiClient.isConnected()) {
+            GoogleApiClient.disconnect();
+        }
+        super.onStop();
+    }
+    /*===================================================
+     * Other Entry and Exit Points to App END
+     *===================================================*/
+    /*===================================================
+     * Altitude Sensor Functions START
+     *===================================================*/
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         //this method gets called automatically under the hood when the sensor's accuracy change
@@ -159,16 +219,28 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         Log.d("RTL_LOG","pressure reading: " + pressure); //leave commented otherwise debug log will get flooded
         altitude = sensorManager.getAltitude(sensorManager.PRESSURE_STANDARD_ATMOSPHERE, pressure); //returns altitude in meters
         Log.d("RTL_LOG","altitude: " + altitude); //leave commented otherwise debug log will get flooded
-
         //I have a reading, stop getting more readings
         sensorManager.unregisterListener(this);
+        //Update status text
+        StatusTextAltitude.setText("DONE");
+        CheckboxAltitude.setChecked(true);
     }
-
+    /*===================================================
+     * Altitude Sensor Functions END
+     *===================================================*/
+    /*===================================================
+     * Google Play Services GPS Functions START
+     *===================================================*/
     @Override
     public void onConnected(Bundle connectionHint) {
-        //on connected is called when Google Play Services API is connected, used for location stuff
+        //on connected is automatically called when Google Play Services API is connected
         Log.d("RTL_LOG","Connected to Google Play Services");
 
+        getGPSLocation();
+    }
+
+    private void getGPSLocation()
+    {
         // Check if we have location permissions
         int fineLocationPermission = ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION);
         int coarseLocationPermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
@@ -179,116 +251,270 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
                     PERMISSIONS_LOCATION,
                     REQUEST_LOCATION);
         }
-
         //get me the last location
-        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
-        if (mLastLocation != null) {
-            latitude = mLastLocation.getLatitude();
-            Log.d("RTL_LOG","latitude: " + latitude);
-            longitude = mLastLocation.getLongitude();
-            Log.d("RTL_LOG","longitude: " + longitude);
+        if (isRunning) {
+            Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
+            if (mLastLocation != null) {
+                //set global vars (for easier retrieval later)
+                latitude = mLastLocation.getLatitude();
+                Log.d("RTL_LOG", "latitude: " + latitude);
+                longitude = mLastLocation.getLongitude();
+                Log.d("RTL_LOG", "longitude: " + longitude);
+                //Update status text
+                StatusTextGPS.setText("DONE");
+                CheckboxGPS.setChecked(true);
+            } else {
+                Log.d("RTL_LOG", "Location cannot be retrieved");
+                //Update status text
+                StatusTextGPS.setText("FAILED");
+                isRunning = false;
+                RunNowButton.setText("RUN NOW");
+            }
         }
-        else {
-            Log.d("RTL_LOG","Location cannot be retrieved");
-        }
+    }
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        //on connection failed is automatically called when Google Play Services API cannot be connected
+        Log.d("RTL_LOG","Cannot Connect to Google Play Services");
+        //Update status text
+        StatusTextGPS.setText("FAILED");
+        isRunning=false;
+        RunNowButton.setText("RUN NOW");
     }
 
     @Override
     public void onConnectionSuspended(int cause) {
         Log.d("RTL_LOG","Connection to Google Play Services suspended");
+        //Update status text
+        StatusTextGPS.setText("FAILED");
+        isRunning=false;
+        RunNowButton.setText("RUN NOW");
+    }
+    /*===================================================
+     * Google Play Services GPS Functions END
+     *===================================================*/
+    /*===================================================
+     * Button: Run Now START
+     *===================================================*/
+    public void OnClickRunNow(View view) {
+        if (gpsIsEnabled() && internetIsEnabled() ) //ensure GPS and Internet is on before proceeding
+        {
+            if (isRunning==false) { //program is not running, lets start it
+                isRunning=true;
+                runProgram();
+            }
+            else { //program is already running, lets stop it
+                isRunning=false;
+                stopProgram();
+            }
+        }
+        else
+        {
+            //GPS and/or Internet connection is not enabled, show a dialog box
+            DialogGPSInternet dialog = new DialogGPSInternet();
+            dialog.show(getSupportFragmentManager(), "gpsInternetDialog");
+        }
+
+    }
+    public boolean gpsIsEnabled()
+    {
+        LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+        //check if GPS is on
+        boolean GPSenabled = manager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        return GPSenabled;
     }
 
-    public void runButtonOnClick(View view) throws ExecutionException, InterruptedException, IOException, ParseException {
-        //define a new runnable class which defines what the worker thread does
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-            //load library already done at the top
-            //code to open USB device start
-            //enumerate through devices from android i.e. availableUSBDevices does the two lines below
-            //UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-            //HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
-            Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(getApplicationContext(), R.xml.device_filter);
+    public boolean internetIsEnabled()
+    {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        //check if internet is on or is connecting
+        boolean internetEnabled = activeNetworkInfo !=null  && activeNetworkInfo.isConnectedOrConnecting();
+        return internetEnabled;
+    }
 
-            //when the time comes, replace hardcoded arguments with proper ones
-            final String[] argv = {"-f", "88M:108M:125k", dirName + "/" + batchID + ".csv"};
-
-            switch (availableUsbDevices.size()) {
-                case 1:
-                    UsbDevice usbDevice = availableUsbDevices.iterator().next(); //get me the only usb device in availableUSBDevices
-                    Log.d("RTL_LOG","1 USB Device detected: "+ usbDevice.getDeviceName());
-                    try {
-                        //set up device connection + ask for permissions
-                        UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(getApplicationContext(), usbDevice).get();
-
-                        //print shit to screen if errored out
-                        TextView textView = (TextView) findViewById(R.id.textView);
-                        if (deviceConnection == null) {
-                            textView.append("Could not get a connection to the USB");
-                            throw new RuntimeException("Could not get a connection");
-                        }
-
-                        //otherwise USB device connection established lovelyyyy
-                        int fd = deviceConnection.getFileDescriptor(); //to be passed to c
-                        Log.d("RTL_LOG","Opening fd: "+fd);
-                        String path = usbDevice.getDeviceName();//to be passed to c
-                        Log.d("RTL_LOG","USB path: "+path);
-                        passFDandDeviceName(fd,path); //method to pass to c
-                    }
-                    catch (ExecutionException ee) {
-                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Execution Exception.");
-                    }
-                    catch (InterruptedException ie) {
-                        Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. Interrupted Exception");
-                    }
-                    break;
-                default:
-                    Log.d("RTL_LOG", "something fucked up with enumerating the available USB devices. 0 Devices connected??");
-                    return;
-            }
-            //code to open USB device end
-            //call c method with hard coded arguments
-            stringFromJNI(argv);
-            }
-        };
-
-        if (isRunning) { //program is already running, lets stop it
-            isRunning = false; //change status of program
-            startStopButton.setText("Start");
-            staphRTLPOWER();// set a global volatile var do_exit in c to quit.
-
-            Log.d("RTL_LOG", "Waiting for rtl_power to terminate. Begin loop...");
-            int executionStatus;
-            do {
-                executionStatus = readExecutionFinished();
-            } while (executionStatus == 0);
-
-            //Trigger CsvToJson Async thread
-            Log.d("RTL_LOG", "rtl_power terminated. Begin conversion...");
-            AsyncTaskTools.execute(new CsvConverter(dirName.toString(), batchID, altitude, latitude, longitude, "10s"));
+    private void runProgram(){
+        /*===================================================
+         * SetUp START
+         *===================================================*/
+        //Update Button Text
+        RunNowButton.setText("Stop");
+        //reset GUI
+        StatusTextAltitude.setText("");
+        CheckboxAltitude.setChecked(false);
+        StatusTextGPS.setText("");
+        CheckboxGPS.setChecked(false);
+        StatusTextRecord.setText("");
+        CheckboxRecord.setChecked(false);
+        StatusTextUpload.setText("");
+        CheckboxUpload.setChecked(false);
+        Log.d("RTL_LOG","Run button pressed");
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    this,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
         }
-        else { //program is not running, lets start it
-            startStopButton.setText("Stop");
-            startStopButton.setClickable(false);
-
-            //registering the listener to the sensor, will get me readings from the sensor
-            //the onAccuracyChanged method or onSensorChanged method will be called when the sensor values change, in those methods i can access sensor values
+        Log.d("RTL_LOG","Storage access permission granted");
+        //Create Working Directory
+        if (!dirName.exists()) {
+            dirName.mkdirs();
+        }
+        Log.d("RTL_LOG","Directory for results established");
+        // reset RTL power flag(s)
+        resetRTLPOWER();
+        /*===================================================
+         * SetUp END
+         *===================================================*/
+        /*===================================================
+         * Get Altitude START
+         *===================================================*/
+        //Update GUI with Altitude status
+        StatusTextAltitude.setText("RUNNING");
+        //check for pressure sensor
+        if (pressureSensor != null) {
+            Log.d("RTL_LOG","Pressure sensor found");
+            //Register a listener to the sensor, will get me readings from the sensor
+            //the onAccuracyChanged method or onSensorChanged methods will be called when the sensor values change
+            //in those methods I can access sensor values
             sensorManager.registerListener(this, pressureSensor, SensorManager.SENSOR_DELAY_NORMAL);
-
-            //start calling rtl power in another thread
-            workerThread = new Thread(runnable);
-
-            AsyncTaskTools.execute(new SyncTime(StreamActivity.this));
         }
+        else {
+            Log.d("RTL_LOG","No pressure sensor found. Unable to calculate altitude");
+            StatusTextAltitude.setText("FAILED");
+            isRunning=false;
+            RunNowButton.setText("RUN NOW");
+            return;
+        }
+        /*===================================================
+         * Get Altitude END
+         *===================================================*/
+        /*===================================================
+         * Get GPS START
+         *===================================================*/
+        //Update GUI with GPS status
+        StatusTextGPS.setText("RUNNING");
+        //Once the connect method is called below, the listeners
+        //onConnected, onConnectionFailed and onConnectionSuspended will be registered
+        //Those methods will allow me to get the Lat and Lng coordinates
+        if (GoogleApiClient.isConnected()) {
+            getGPSLocation(); //already connected to google play services (e.g. from second scan)
+        }
+        else {
+            GoogleApiClient.connect();
+        }
+        /*===================================================
+         * Get GPS END
+         *===================================================*/
+        /*===================================================
+         * Get Sync Time then begin SpectrumRecording START
+         *===================================================*/
+        AsyncTaskTools.execute(new SyncTime(StreamActivity.this));
+        //When SyncTime finishes, the app continues execution at method beginSpectrumRecording()
+        /*===================================================
+         * Get Sync Time then begin Spectrum Recording END
+         *===================================================*/
+        /*===================================================
+         * Upload to MongoDB START
+         *===================================================*/
+        //refer to method beginSpectrumUpload(), which gets called once beginSpectrumRecording() is done
+        /*===================================================
+         * Upload to MongoDB END
+         *===================================================*/
     }
 
-    @Override
-    public void onTaskCompleted() {
-        Log.d("RTL_LOG", "Device synchronised. Starting rtl_power execution...");
-        batchID = getBatchID(); //Set batch ID to current datetime
-        workerThread.start();
-        isRunning = true;
-        startStopButton.setClickable(true);
+    private void stopProgram() {
+        RunNowButton.setText("Stopping");
+        RunNowButton.setClickable(false);
+        /*===================================================
+         * Stop Altitude START
+         *===================================================*/
+        altitude=0;
+        StatusTextAltitude.setText("");
+        CheckboxAltitude.setChecked(false);
+        /*===================================================
+         * Stop Altitude END
+         *===================================================*/
+        /*===================================================
+         * Stop GPS START
+         *===================================================*/
+        latitude=0; //reset values
+        longitude=0;
+        if(GoogleApiClient.isConnected())
+        {
+            GoogleApiClient.disconnect();
+        }
+        StatusTextGPS.setText("");
+        CheckboxGPS.setChecked(false);
+        /*===================================================
+         * Stop GPS END
+         *===================================================*/
+        /*===================================================
+         * Stop Sync Time START
+         *===================================================*/
+        //this should periodically check the public boolean isRunning and cancel accordingly
+        /*===================================================
+         * Stop Sync Time END
+         *===================================================*/
+        /*===================================================
+         * Stop Record START
+         *===================================================*/
+        staphRTLPOWER();// set a global volatile var do_exit in c to quit.
+/*
+        Log.d("RTL_LOG", "Waiting for rtl_power to terminate. Begin loop...");
+        int executionStatus;
+        do {
+        executionStatus = readExecutionFinished();
+        } while (executionStatus == 0);
+        */
+        StatusTextRecord.setText("");
+        CheckboxRecord.setChecked(false);
+        /*===================================================
+         * Stop Record END
+         *===================================================*/
+        /*===================================================
+         * Stop Upload START
+         *===================================================*/
+        //this should periodically check the public boolean isRunning and cancel accordingly
+        StatusTextUpload.setText("");
+        CheckboxUpload.setChecked(false);
+        /*===================================================
+         * Stop Upload END
+         *===================================================*/
+        //Finished stopping the program
+        RunNowButton.setText("RUN NOW");
+        RunNowButton.setClickable(true);
+    }
+    /*===================================================
+     * Button: Run Now END
+     *===================================================*/
+    /*===================================================
+     * Continue Execution here after calling AsyncTaskTools.execute(new SyncTime(StreamActivity.this)); START
+     *===================================================*/
+    public void beginSpectrumRecording() {
+        if(isRunning) {
+            Log.d("RTL_LOG", "Device synchronised. Starting rtl_power execution...");
+            //Update GUI with Record status
+            StatusTextRecord.setText("RUNNING");
+            //start calling rtl power in another thread
+            batchID = getBatchID(); //Set batch ID to current datetime
+            AsyncTaskTools.execute(new RTLPower(StreamActivity.this, batchID));
+        }
+        else
+        {
+            stopSpectrumRecording();
+        }
+    }
+    public void stopSpectrumRecording()
+    {
+        Log.d("RTL_LOG", "Stopped Spectrum Recording");
+        StatusTextRecord.setText("");
+        CheckboxRecord.setChecked(false);
+        isRunning=false;
     }
 
     private static String getBatchID() {
@@ -296,39 +522,210 @@ public class StreamActivity extends FragmentActivity implements ConnectionCallba
         Date date = new Date();
         return sdf.format(date);
     }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    /*===================================================
+     * Continue Execution here after calling AsyncTaskTools.execute(new SyncTime(StreamActivity.this)); END
+     *===================================================*/
+    /*===================================================
+     * Continue Execution here after calling AsyncTaskTools.execute(new RTLPower(StreamActivity.this, batchID)); START
+     *===================================================*/
+    public void beginCSVConversion(){
+        if (isRunning)
+        {
+            StatusTextRecord.setText("DONE");
+            CheckboxRecord.setChecked(true);
+            StatusTextUpload.setText("RUNNING");
+            AsyncTaskTools.execute(new CsvConverter(StreamActivity.this, dirName.toString(), batchID, altitude, latitude, longitude, "10s"));
+        }
+        else
+        {
+            stopSpectrumRecording();
+        }
     }
 
-    @Override
-    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
+    public void recordSpectrumFailed(){
+        Log.d("RTL_LOG", "Spectrum Recording Failed");
+        StatusTextRecord.setText("FAILED");
+        isRunning=false;
+        RunNowButton.setText("RUN NOW");
     }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-    }
-
-    @Override
-    protected void onStop() {
-        GoogleApiClient.disconnect();
-        super.onStop();
-    }
-
-    @Override
-    protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
-    }
-
-    public void switchToGoogleMaps(View view)
+    public void stopSpectrumUpload()
     {
-        Intent intent = new Intent(getApplicationContext(), LocationMapActivity.class);
-        startActivity(intent);
+        Log.d("RTL_LOG", "Stopped Spectrum Upload");
+        StatusTextUpload.setText("");
+        CheckboxUpload.setChecked(false);
+        isRunning=false;
     }
+    /*===================================================
+     * Continue Execution here after calling AsyncTaskTools.execute(new RTLPower(StreamActivity.this, batchID)); END
+     *===================================================*/
+    /*===================================================
+     * Continue Execution here after calling AsyncTaskTools.execute(new CsvConverter START
+     *===================================================*/
+    public void beginUploadtoMongoDB(){
+        if (isRunning) {
+            AsyncTaskTools.execute(new HttpPostRequest(StreamActivity.this, dirName.toString(), batchID));
+        }
+        else {
+            stopSpectrumUpload();
+        }
+    }
+
+    public void csvConversionFailed(){
+        Log.d("RTL_LOG", "CSV Conversion Failed");
+        StatusTextUpload.setText("FAILED");
+        isRunning=false;
+        RunNowButton.setText("RUN NOW");
+
+    }
+    /*===================================================
+     * Continue Execution here after calling AsyncTaskTools.execute(new CsvConverter END
+     *===================================================*/
+    /*===================================================
+     * Continue Execution here after calling AsyncTaskTools.execute(new HttpPostRequest START
+     *===================================================*/
+    public void uploadSucessful(){
+        if(isRunning) {
+            CheckboxUpload.setChecked(true);
+            StatusTextUpload.setText("DONE");
+            isRunning=false;
+            RunNowButton.setText("RUN NOW");
+        }
+        else {
+            stopSpectrumUpload();
+        }
+    }
+
+    public void uploadFailed(){
+        Log.d("RTL_LOG", "HTTP Post Failed");
+        StatusTextUpload.setText("FAILED");
+        isRunning=false;
+        RunNowButton.setText("RUN NOW");
+    }
+    /*===================================================
+     * Continue Execution here after calling AsyncTaskTools.execute(new HttpPostRequest END
+     *===================================================*/
+    /*===================================================
+     * Button: toggle between Google maps and debug log START
+     *===================================================*/
+    public void OnClickToggleGoogleMapsAndDebugLog(View view)
+    {
+        //local variables
+        TextView debugLog = (TextView) findViewById(R.id.textView);
+        Button toggleButton = (Button)findViewById(R.id.ButtonToggleGoogleMapsAndDebugLog);
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+        //toggle between Google Maps and Debug Log
+        if (debugLog.getVisibility() == View.GONE) { //by default, the debug log should be "gone" and google maps is visible
+            //Change label of button
+            toggleButton.setText("View Location on Google Maps");
+            //Hide Google Maps
+            fragmentTransaction.hide(getSupportFragmentManager().findFragmentById(R.id.map));
+            fragmentTransaction.commit();
+            //Show debug log
+            debugLog.setVisibility(View.VISIBLE);
+        }
+        else {
+            //Change label of button
+            toggleButton.setText("View Detailed Debug Info");
+            //Hide debug log
+            debugLog.setVisibility(View.GONE);
+            //Show Google Maps
+            fragmentTransaction.show(getSupportFragmentManager().findFragmentById(R.id.map));
+            fragmentTransaction.commit();
+        }
+    }
+    /*===================================================
+     * Button: toggle between Google maps and debug log End
+     *===================================================*/
+    /*===================================================
+     * Google Maps Fragment Start
+     *===================================================*/
+    // Request code for location permission request. @see #onRequestPermissionsResult(int, String[], int[])
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+
+    //Flag indicating whether a requested permission has been denied after returning in {@link #onRequestPermissionsResult(int, String[], int[])}.
+    private boolean mPermissionDenied = false;
+    private static final LatLng SYDNEY = new LatLng(-33.8683615,151.2103255);
+
+    private GoogleMap mMap;
+
+    @Override
+    public void onMapReady(GoogleMap map) {
+        mMap = map;
+
+        mMap.setOnMyLocationButtonClickListener(this);
+        enableMyLocation();
+        //enable 3d buildings,
+        map.setBuildingsEnabled(true);
+
+
+        // Construct a CameraPosition focusing on Sydney and animate the camera to that position.
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(SYDNEY)      // Sets the center of the map to Mountain View
+                .zoom(16)                   // Sets the zoom
+                .bearing(0)                // Sets the orientation of the camera to east
+                .tilt(85)                   // Sets the tilt of the camera to 30 degrees
+                .build();                   // Creates a CameraPosition from the builder
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+    }
+
+    //Enables the My Location layer if the fine location permission has been granted.
+    private void enableMyLocation() {
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Permission to access the location is missing.
+            PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
+                    Manifest.permission.ACCESS_FINE_LOCATION, true);
+        } else if (mMap != null) {
+            // Access to the location has been granted to the app.
+            mMap.setMyLocationEnabled(true);
+        }
+    }
+
+    @Override
+    public boolean onMyLocationButtonClick() {
+        Toast.makeText(this, "Moving To My Location", Toast.LENGTH_SHORT).show();
+        // Return false so that we don't consume the event and the default behavior still occurs
+        // (the camera animates to the user's current position).
+        return false;
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
+            return;
+        }
+
+        if (PermissionUtils.isPermissionGranted(permissions, grantResults,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
+            // Enable the my location layer if the permission has been granted.
+            enableMyLocation();
+        } else {
+            // Display the missing permission error dialog when the fragments resume.
+            mPermissionDenied = true;
+        }
+    }
+
+    @Override
+    protected void onResumeFragments() {
+        super.onResumeFragments();
+        if (mPermissionDenied) {
+            // Permission was not granted, display error dialog.
+            showMissingPermissionError();
+            mPermissionDenied = false;
+        }
+    }
+
+    //Displays a dialog with error message explaining that the location permission is missing.
+    private void showMissingPermissionError() {
+        PermissionUtils.PermissionDeniedDialog
+                .newInstance(true).show(getSupportFragmentManager(), "dialog");
+    }
+    /*===================================================
+     * Google Maps Fragment End
+     *===================================================*/
 }

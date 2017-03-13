@@ -18,13 +18,17 @@ import java.net.URL;
  * the contents to MongoDB via a URI endpoint.
  */
 
-public class HttpPostRequest extends AsyncTask<String, Void, Void> {
+public class HttpPostRequest extends AsyncTask<String, Void, Object> {
     private String dirName;
     private String batchID;
+    private StreamActivity activityContext;
+    private boolean backgroundProcessingFailed=false;
 
-    public HttpPostRequest(String dirName, String batchID) {
+    public HttpPostRequest(StreamActivity streamActivity, String dirName, String batchID) {
+        this.activityContext = streamActivity;
         this.dirName = dirName;
         this.batchID = batchID;
+
     }
 
     @Override
@@ -40,6 +44,10 @@ public class HttpPostRequest extends AsyncTask<String, Void, Void> {
                 fis.close();
                 executeRequest(jsonData);
             }
+            else
+            {
+                backgroundProcessingFailed=true;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -48,7 +56,7 @@ public class HttpPostRequest extends AsyncTask<String, Void, Void> {
 
     private void executeRequest(String jsonData) throws Exception {
         String responseData;
-        String url = "http://ec2-52-64-226-30.ap-southeast-2.compute.amazonaws.com:9000/addrecord/spectrum";
+        String url = "http://ec2-13-55-90-132.ap-southeast-2.compute.amazonaws.com/addrecord/spectrum";
 
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
@@ -108,5 +116,16 @@ public class HttpPostRequest extends AsyncTask<String, Void, Void> {
         }
         reader.close();
         return sb.toString();
+    }
+
+    @Override
+    protected void onPostExecute(Object result) {
+        if(backgroundProcessingFailed) {
+            activityContext.uploadFailed();
+        }
+        else {
+            activityContext.uploadSucessful();
+
+        }
     }
 }

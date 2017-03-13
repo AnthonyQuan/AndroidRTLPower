@@ -49,12 +49,12 @@ public class LogCatTask extends AsyncTask<Void, String, Void> {
         // find the amount we need to scroll.  This works by
         // asking the TextView's internal layout for the position
         // of the final line and then subtracting the TextView's height
-        final int scrollAmount = logView.getLayout().getLineTop(logView.getLineCount()) - logView.getHeight();
+        //final int scrollAmount = logView.getLayout().getLineTop(logView.getLineCount()) - logView.getHeight();
         // if there is no need to scroll, scrollAmount will be <=0
-        if (scrollAmount > 0)
-            logView.scrollTo(0, scrollAmount);
-        else
-            logView.scrollTo(0, 0);
+        //if (scrollAmount > 0)
+        //    logView.scrollTo(0, scrollAmount);
+        //else
+        //    logView.scrollTo(0, 0);
         //super.onProgressUpdate(values);
     }
 }

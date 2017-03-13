@@ -22,14 +22,18 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
     private double latitude;
     private double longitude;
     private String integrationInterval;
+    private StreamActivity activityContext;
+    private Boolean backgroundProcessingFailed=false;
 
-    public CsvConverter(String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) {
+    public CsvConverter(StreamActivity streamActivity, String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) {
+        this.activityContext = streamActivity;
         this.dirName = dirName;
         this.batchID = batchID;
         this.altitude = altitude;
         this.latitude = latitude;
         this.longitude = longitude;
         this.integrationInterval = integrationInterval;
+
     }
 
     @Override
@@ -38,18 +42,25 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
             convert(dirName, batchID, altitude, latitude, longitude, integrationInterval);
         } catch (Exception e) {
             e.printStackTrace();
+            backgroundProcessingFailed=true;
         }
         return null;
     }
 
     @Override
     protected void onPostExecute(Void v) {
-        //Trigger HTTP Async thread after this thread is complete
-        Log.d("RTL_LOG", "Starting HTTP Async thread...");
-        AsyncTaskTools.execute(new HttpPostRequest(dirName, batchID));
+        if (backgroundProcessingFailed)
+        {
+            activityContext.csvConversionFailed();
+        }
+        else {
+            //Trigger HTTP Async thread after this thread is complete
+            Log.d("RTL_LOG", "Starting HTTP Async thread...");
+            activityContext.beginUploadtoMongoDB();
+        }
     }
 
-    private static void convert(String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) throws IOException, ParseException {
+    private void convert(String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) throws IOException, ParseException {
         Log.d("RTL_LOG", "Finding .csv file in directory...");
         String csvFile = findFile(dirName, batchID);
 
@@ -164,9 +175,13 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
             fr.close();
             br.close();
         }
+        else
+        {
+            backgroundProcessingFailed=true;
+        }
     }
 
-    private static String findFile(String dirName, String batchID) {
+    private String findFile(String dirName, String batchID) {
         File dir = new File(dirName);
         File[] files = dir.listFiles();
         String csvFileName = "NOTFOUND";

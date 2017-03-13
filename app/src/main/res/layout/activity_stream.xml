@@ -1,26 +1,130 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:weightSum="1">
+    android:orientation="vertical">
+
+
+    <TextView
+        android:text="Before you begin, please ensure the RTLSDR dongle is attached, the device is connected to the internet and GPS location is on. Thank you!"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/IntroText" />
 
     <Button
-        android:text="Run"
+        android:text="Run Now"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/button"
-        android:onClick="RunButtonOnClick"/>
+        android:id="@+id/ButtonRun"
+        android:onClick="OnClickRunNow"/>
+
     <Button
-        android:id="@+id/buttonSwitchToGoogleMaps"
+        android:id="@+id/ButtonToggleGoogleMapsAndDebugLog"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="switchToGoogleMaps"
-        android:text="View Location" />
+        android:onClick="OnClickToggleGoogleMapsAndDebugLog"
+        android:text="View Detailed Debug Info" />
+    <LinearLayout
+        android:id="@+id/linearLayoutAltitude"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <CheckBox
+            android:text="Get Altitude"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/checkBoxAltitude"
+            android:checked="false"
+            android:layout_weight="1"
+            android:clickable="false" />
+        <TextView
+            android:text=""
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textViewAltitude"
+            android:layout_weight="1"/>
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/linearLayoutGPS"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+        <CheckBox
+            android:text="Get GPS Location"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/checkBoxGPS"
+            android:checked="false"
+            android:layout_weight="1"
+            android:clickable="false" />
+        <TextView
+            android:text=""
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textViewGPS"
+            android:layout_weight="1"/>
+
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/linearLayoutRecord"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <CheckBox
+            android:text="Record Spectrum"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/checkBoxRecord"
+            android:checked="false"
+            android:layout_weight="1"
+            android:clickable="false" />
+        <TextView
+            android:text=""
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textViewRecord"
+            android:layout_weight="1"/>
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/linearLayoutUpload"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <CheckBox
+            android:text="Upload To Cloud"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/checkBoxUpload"
+            android:checked="false"
+            android:layout_weight="1"
+            android:clickable="false" />
+        <TextView
+            android:text=""
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textViewUpload"
+            android:layout_weight="1"/>
+    </LinearLayout>
+
+
+    <fragment
+        android:id="@+id/map"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        class="com.google.android.gms.maps.SupportMapFragment">
+    </fragment>
+
     <TextView
         android:text="Results get printed here...\n"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:id="@+id/textView"
-        android:scrollbars="vertical"/>
+        android:scrollbars="vertical"
+        android:gravity="bottom"
+        android:visibility="gone"/>
 </LinearLayout>

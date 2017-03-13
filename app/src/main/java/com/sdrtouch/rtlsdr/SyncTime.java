@@ -14,9 +14,9 @@ import java.net.URL;
  */
 
 public class SyncTime extends AsyncTask<Object, Object, Object> {
-    private OnTaskCompleted activityContext;
+    private StreamActivity activityContext;
 
-    public SyncTime(OnTaskCompleted activityContext) {
+    public SyncTime(StreamActivity activityContext) {
         this.activityContext = activityContext;
     }
 
@@ -25,10 +25,22 @@ public class SyncTime extends AsyncTask<Object, Object, Object> {
         try {
             long executionTime = getSyncTime();
             long currentTime = System.currentTimeMillis();
-            Log.d("RTL_LOG","Sync time: " + executionTime);
-            Log.d("RTL_LOG","Current time: " + currentTime);
-            Log.d("RTL_LOG","Sleeping for: " + Long.toString((executionTime - currentTime)) + " milliseconds");
-            Thread.sleep(executionTime - currentTime);
+            Log.d("RTL_LOG", "Sync time: " + executionTime);
+            Log.d("RTL_LOG", "Current time: " + currentTime);
+            Log.d("RTL_LOG", "Sleeping for: " + Long.toString((executionTime - currentTime)) + " milliseconds");
+            for (int i=0; i<30;i++)
+            {
+                if (activityContext.isRunning)
+                {
+                    Thread.sleep(Math.abs((executionTime - currentTime))/30);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            Log.d("RTL_LOG", "Sleeping complete");
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -39,11 +51,13 @@ public class SyncTime extends AsyncTask<Object, Object, Object> {
 
     @Override
     protected void onPostExecute(Object o) {
-        activityContext.onTaskCompleted();
+        Log.d("RTL_LOG","Synchronisation complete");
+        activityContext.beginSpectrumRecording();
     }
 
     private long getSyncTime() throws IOException {
-        String url = "http://ec2-52-64-226-30.ap-southeast-2.compute.amazonaws.com:9000/synctime";
+        Log.d("RTL_LOG","Synchronising with server");
+        String url = "http://ec2-13-55-90-132.ap-southeast-2.compute.amazonaws.com/synctime";
 
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
