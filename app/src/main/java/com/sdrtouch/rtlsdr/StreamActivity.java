@@ -413,6 +413,7 @@ public class StreamActivity
         /*===================================================
          * Get Sync Time then begin SpectrumRecording START
          *===================================================*/
+        StatusTextRecord.setText("SYNCHRONISING");
         AsyncTaskTools.execute(new SyncTime(StreamActivity.this));
         //When SyncTime finishes, the app continues execution at method beginSpectrumRecording()
         /*===================================================
