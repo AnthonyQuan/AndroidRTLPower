@@ -1855,7 +1855,7 @@ int mainCOPIED(int argc, char **argv)
     /* clean up */
 
     if (do_exit) {
-        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "User cancel, exiting...\n");}
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Recording complete, exiting...\n");}
     else {
         __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Library error %d, exiting...\n", r);}
 

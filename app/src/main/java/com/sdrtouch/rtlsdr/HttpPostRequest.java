@@ -34,7 +34,6 @@ public class HttpPostRequest extends AsyncTask<String, Void, Object> {
     @Override
     protected Void doInBackground(String[] params) {
         try {
-            Log.d("RTL_LOG", "Finding .json file in directory...");
             File jsonFile = findFile(dirName, batchID);
 
             if (jsonFile.canRead()) { // only proceed when there is a valid json file
@@ -77,9 +76,6 @@ public class HttpPostRequest extends AsyncTask<String, Void, Object> {
 
         //Parse Response
         int responseCode = con.getResponseCode();
-        Log.d("RTL_LOG","Sending 'POST' request to URL: " + url);
-        Log.d("RTL_LOG","Response Code : " + responseCode);
-
         BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
         String inputLine;
         StringBuffer response = new StringBuffer();
@@ -91,7 +87,7 @@ public class HttpPostRequest extends AsyncTask<String, Void, Object> {
 
         //Store and Log Response
         responseData = response.toString();
-        Log.d("RTL_LOG","Response body: " + responseData);
+        Log.d("RTL_LOG","Server response: " + responseData);
     }
 
     private static File findFile(String dirName, String batchID) {

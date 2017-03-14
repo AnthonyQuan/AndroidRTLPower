@@ -89,7 +89,6 @@ public class StreamActivity
     private CheckBox CheckboxRecord;
     private CheckBox CheckboxUpload;
 
-
     //Run button status variable(s)
     public boolean isRunning = false;
 
@@ -102,19 +101,20 @@ public class StreamActivity
     private double latitude = 0.000000;
     private double longitude = 0.000000;
 
+    //Google Maps variable(s)
+    private GoogleMap mMap;
+    private static final LatLng SYDNEY = new LatLng(-33.8683615,151.2103255);
+
     //Altitude Sensor variable(s)
     private SensorManager sensorManager;
     private Sensor pressureSensor;
     private float altitude = 0;
 
-    // Storage Permissions
-    private static final int REQUEST_EXTERNAL_STORAGE = 1;
-    private static String[] PERMISSIONS_STORAGE = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-    };
+    //Storage Permissions
+    private static final int WRITE_PERMISSION_REQUEST_CODE = 3;
 
-    // Location Permissions
+    //Location Permissions
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private static final int REQUEST_LOCATION = 2;
     private static String[] PERMISSIONS_LOCATION = {
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -130,10 +130,10 @@ public class StreamActivity
     public native void staphRTLPOWER();
     public native void resetRTLPOWER();
     public native int readExecutionFinished();
-
     /*===================================================
      * Global Variables END
      *===================================================*/
+
     /*===================================================
      * Main Entry Point to App START
      *===================================================*/
@@ -171,6 +171,7 @@ public class StreamActivity
     /*===================================================
      * Main Entry Point to App END
      *===================================================*/
+
     /*===================================================
      * Other Entry and Exit Points to App START
      *===================================================*/
@@ -181,26 +182,24 @@ public class StreamActivity
 
     @Override
     protected void onResume() {
-
         super.onResume();
     }
 
     @Override
     protected void onPause() {
-
         super.onPause();
     }
 
     @Override
     protected void onStop() {
-        if( GoogleApiClient.isConnected()) {
+        if (GoogleApiClient.isConnected())
             GoogleApiClient.disconnect();
-        }
         super.onStop();
     }
     /*===================================================
      * Other Entry and Exit Points to App END
      *===================================================*/
+
     /*===================================================
      * Altitude Sensor Functions START
      *===================================================*/
@@ -226,6 +225,7 @@ public class StreamActivity
     /*===================================================
      * Altitude Sensor Functions END
      *===================================================*/
+
     /*===================================================
      * Google Play Services GPS Functions START
      *===================================================*/
@@ -233,12 +233,10 @@ public class StreamActivity
     public void onConnected(Bundle connectionHint) {
         //on connected is automatically called when Google Play Services API is connected
         Log.d("RTL_LOG","Connected to Google Play Services");
-
         getGPSLocation();
     }
 
-    private void getGPSLocation()
-    {
+    private void getGPSLocation() {
         // Check if we have location permissions
         int fineLocationPermission = ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION);
         int coarseLocationPermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
@@ -249,6 +247,7 @@ public class StreamActivity
                     PERMISSIONS_LOCATION,
                     REQUEST_LOCATION);
         }
+
         //get me the last location
         if (isRunning) {
             Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
@@ -270,13 +269,14 @@ public class StreamActivity
             }
         }
     }
+
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         //on connection failed is automatically called when Google Play Services API cannot be connected
         Log.d("RTL_LOG","Cannot Connect to Google Play Services");
         //Update status text
         StatusTextGPS.setText("FAILED");
-        isRunning=false;
+        isRunning = false;
         RunNowButton.setText("RUN NOW");
     }
 
@@ -285,53 +285,65 @@ public class StreamActivity
         Log.d("RTL_LOG","Connection to Google Play Services suspended");
         //Update status text
         StatusTextGPS.setText("FAILED");
-        isRunning=false;
+        isRunning = false;
         RunNowButton.setText("RUN NOW");
     }
     /*===================================================
      * Google Play Services GPS Functions END
      *===================================================*/
+
     /*===================================================
      * Button: Run Now START
      *===================================================*/
     public void OnClickRunNow(View view) {
-        if (gpsIsEnabled() && internetIsEnabled() ) //ensure GPS and Internet is on before proceeding
-        {
-            if (isRunning==false) { //program is not running, lets start it
-                isRunning=true;
+        //ensure GPS and Internet is on before proceeding
+        if (gpsIsEnabled() && internetIsEnabled()) {
+            if (!isRunning) { //program is not running, lets start it
+                isRunning = true;
                 runProgram();
             }
             else { //program is already running, lets stop it
-                isRunning=false;
+                isRunning = false;
                 stopProgram();
             }
         }
-        else
-        {
+        else {
             //GPS and/or Internet connection is not enabled, show a dialog box
             DialogGPSInternet dialog = new DialogGPSInternet();
             dialog.show(getSupportFragmentManager(), "gpsInternetDialog");
         }
-
     }
-    public boolean gpsIsEnabled()
-    {
-        LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+    public boolean gpsIsEnabled() {
+        LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         //check if GPS is on
-        boolean GPSenabled = manager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        return GPSenabled;
+        return manager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
 
-    public boolean internetIsEnabled()
-    {
+    public boolean internetIsEnabled() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         //check if internet is on or is connecting
-        boolean internetEnabled = activeNetworkInfo !=null  && activeNetworkInfo.isConnectedOrConnecting();
-        return internetEnabled;
+        return activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
     }
 
-    private void runProgram(){
+    private void createStorageDirectory() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Permission to write to external storage is missing.
+            PermissionUtils.requestPermission(this, WRITE_PERMISSION_REQUEST_CODE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE, true);
+        } else {
+            // Access to write to external storage is granted to the app.
+            Log.d("RTL_LOG","Write access permission granted");
+            //Create Working Directory
+            if (!dirName.exists())
+                dirName.mkdirs();
+            Log.d("RTL_LOG","External storage directory established");
+        }
+    }
+
+    private void runProgram() {
         /*===================================================
          * SetUp START
          *===================================================*/
@@ -348,21 +360,11 @@ public class StreamActivity
         CheckboxUpload.setChecked(false);
         Log.d("RTL_LOG","Run button pressed");
         // Check if we have write permission
-        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            // We don't have permission so prompt the user
-            ActivityCompat.requestPermissions(
-                    this,
-                    PERMISSIONS_STORAGE,
-                    REQUEST_EXTERNAL_STORAGE
-            );
-        }
-        Log.d("RTL_LOG","Storage access permission granted");
-        //Create Working Directory
-        if (!dirName.exists()) {
-            dirName.mkdirs();
-        }
-        Log.d("RTL_LOG","Directory for results established");
+        int writePermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (writePermission != PackageManager.PERMISSION_GRANTED)
+            createStorageDirectory();
+        else
+            Log.d("RTL_LOG","Write access permission granted");
         // reset RTL power flag(s)
         resetRTLPOWER();
         /*===================================================
@@ -374,7 +376,7 @@ public class StreamActivity
         //Update GUI with Altitude status
         StatusTextAltitude.setText("RUNNING");
         //check for pressure sensor
-        if (pressureSensor != null) {
+        if (pressureSensor !=  null) {
             Log.d("RTL_LOG","Pressure sensor found");
             //Register a listener to the sensor, will get me readings from the sensor
             //the onAccuracyChanged method or onSensorChanged methods will be called when the sensor values change
@@ -397,11 +399,19 @@ public class StreamActivity
         //Once the connect method is called below, the listeners
         //onConnected, onConnectionFailed and onConnectionSuspended will be registered
         //Those methods will allow me to get the Lat and Lng coordinates
-        if (GoogleApiClient.isConnected()) {
+        if (GoogleApiClient.isConnected())
             getGPSLocation(); //already connected to google play services (e.g. from second scan)
-        }
-        else {
+        else
             GoogleApiClient.connect();
+
+        //Terminate execution if write access is NOT granted
+        writePermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (writePermission != PackageManager.PERMISSION_GRANTED) {
+            Log.d("RTL_LOG", "Write permissions were not granted. Unable to continue execution");
+            isRunning = false;
+            RunNowButton.setText("RUN NOW");
+            StatusTextGPS.setText("");
+            return;
         }
         /*===================================================
          * Get GPS END
@@ -430,7 +440,7 @@ public class StreamActivity
         /*===================================================
          * Stop Altitude START
          *===================================================*/
-        altitude=0;
+        altitude = 0;
         StatusTextAltitude.setText("");
         CheckboxAltitude.setChecked(false);
         /*===================================================
@@ -439,12 +449,10 @@ public class StreamActivity
         /*===================================================
          * Stop GPS START
          *===================================================*/
-        latitude=0; //reset values
-        longitude=0;
-        if(GoogleApiClient.isConnected())
-        {
+        latitude = 0; //reset values
+        longitude = 0;
+        if (GoogleApiClient.isConnected())
             GoogleApiClient.disconnect();
-        }
         StatusTextGPS.setText("");
         CheckboxGPS.setChecked(false);
         /*===================================================
@@ -461,8 +469,8 @@ public class StreamActivity
          * Stop Record START
          *===================================================*/
         staphRTLPOWER();// set a global volatile var do_exit in c to quit.
-/*
-        Log.d("RTL_LOG", "Waiting for rtl_power to terminate. Begin loop...");
+        /*
+        Log.d("RTL_LOG", "Waiting for rtl_power to terminate. Begin loop..");
         int executionStatus;
         do {
         executionStatus = readExecutionFinished();
@@ -489,12 +497,13 @@ public class StreamActivity
     /*===================================================
      * Button: Run Now END
      *===================================================*/
+
     /*===================================================
      * Continue Execution here after calling AsyncTaskTools.execute(new SyncTime(StreamActivity.this)); START
      *===================================================*/
     public void beginSpectrumRecording() {
-        if(isRunning) {
-            Log.d("RTL_LOG", "Device synchronised. Starting rtl_power execution...");
+        if (isRunning) {
+            Log.d("RTL_LOG", "Device synchronised. Starting rtl_power execution..");
             //Update GUI with Record status
             StatusTextRecord.setText("RUNNING");
             //start calling rtl power in another thread
@@ -502,16 +511,14 @@ public class StreamActivity
             AsyncTaskTools.execute(new RTLPower(StreamActivity.this, batchID));
         }
         else
-        {
             stopSpectrumRecording();
-        }
     }
-    public void stopSpectrumRecording()
-    {
+
+    public void stopSpectrumRecording() {
         Log.d("RTL_LOG", "Stopped Spectrum Recording");
         StatusTextRecord.setText("");
         CheckboxRecord.setChecked(false);
-        isRunning=false;
+        isRunning = false;
     }
 
     private static String getBatchID() {
@@ -522,90 +529,86 @@ public class StreamActivity
     /*===================================================
      * Continue Execution here after calling AsyncTaskTools.execute(new SyncTime(StreamActivity.this)); END
      *===================================================*/
+
     /*===================================================
      * Continue Execution here after calling AsyncTaskTools.execute(new RTLPower(StreamActivity.this, batchID)); START
      *===================================================*/
-    public void beginCSVConversion(){
-        if (isRunning)
-        {
+    public void beginCSVConversion() {
+        if (isRunning) {
             StatusTextRecord.setText("DONE");
             CheckboxRecord.setChecked(true);
             StatusTextUpload.setText("RUNNING");
             AsyncTaskTools.execute(new CsvConverter(StreamActivity.this, dirName.toString(), batchID, altitude, latitude, longitude, "10s"));
         }
         else
-        {
             stopSpectrumRecording();
-        }
     }
 
-    public void recordSpectrumFailed(){
+    public void recordSpectrumFailed() {
         Log.d("RTL_LOG", "Spectrum Recording Failed");
         StatusTextRecord.setText("FAILED");
-        isRunning=false;
+        isRunning = false;
         RunNowButton.setText("RUN NOW");
     }
-    public void stopSpectrumUpload()
-    {
+
+    public void stopSpectrumUpload() {
         Log.d("RTL_LOG", "Stopped Spectrum Upload");
         StatusTextUpload.setText("");
         CheckboxUpload.setChecked(false);
-        isRunning=false;
+        isRunning = false;
     }
     /*===================================================
      * Continue Execution here after calling AsyncTaskTools.execute(new RTLPower(StreamActivity.this, batchID)); END
      *===================================================*/
+
     /*===================================================
      * Continue Execution here after calling AsyncTaskTools.execute(new CsvConverter START
      *===================================================*/
-    public void beginUploadtoMongoDB(){
-        if (isRunning) {
+    public void beginUploadtoMongoDB() {
+        if (isRunning)
             AsyncTaskTools.execute(new HttpPostRequest(StreamActivity.this, dirName.toString(), batchID));
-        }
-        else {
+        else
             stopSpectrumUpload();
-        }
     }
 
-    public void csvConversionFailed(){
+    public void csvConversionFailed() {
         Log.d("RTL_LOG", "CSV Conversion Failed");
         StatusTextUpload.setText("FAILED");
-        isRunning=false;
+        isRunning = false;
         RunNowButton.setText("RUN NOW");
-
     }
     /*===================================================
      * Continue Execution here after calling AsyncTaskTools.execute(new CsvConverter END
      *===================================================*/
+
     /*===================================================
      * Continue Execution here after calling AsyncTaskTools.execute(new HttpPostRequest START
      *===================================================*/
-    public void uploadSucessful(){
-        if(isRunning) {
+    public void uploadSucessful() {
+        if (isRunning) {
             CheckboxUpload.setChecked(true);
             StatusTextUpload.setText("DONE");
-            isRunning=false;
+            isRunning = false;
             RunNowButton.setText("RUN NOW");
         }
-        else {
+        else
             stopSpectrumUpload();
-        }
     }
 
-    public void uploadFailed(){
+    public void uploadFailed() {
         Log.d("RTL_LOG", "HTTP Post Failed");
         StatusTextUpload.setText("FAILED");
-        isRunning=false;
+        isRunning = false;
         RunNowButton.setText("RUN NOW");
     }
     /*===================================================
      * Continue Execution here after calling AsyncTaskTools.execute(new HttpPostRequest END
      *===================================================*/
+
     /*===================================================
      * Button: toggle between Google maps and debug log START
      *===================================================*/
-    public void OnClickToggleGoogleMapsAndDebugLog(View view)
-    {
+    public void OnClickToggleGoogleMapsAndDebugLog(View view) {
         //local variables
         TextView debugLog = (TextView) findViewById(R.id.textView);
         Button toggleButton = (Button)findViewById(R.id.ButtonToggleGoogleMapsAndDebugLog);
@@ -613,7 +616,8 @@ public class StreamActivity
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
 
         //toggle between Google Maps and Debug Log
-        if (debugLog.getVisibility() == View.GONE) { //by default, the debug log should be "gone" and google maps is visible
+        //by default, the debug log should be "gone" and google maps is visible
+        if (debugLog.getVisibility() == View.GONE) {
             //Change label of button
             toggleButton.setText("View Location on Google Maps");
             //Hide Google Maps
@@ -635,18 +639,10 @@ public class StreamActivity
     /*===================================================
      * Button: toggle between Google maps and debug log End
      *===================================================*/
+
     /*===================================================
      * Google Maps Fragment Start
      *===================================================*/
-    // Request code for location permission request. @see #onRequestPermissionsResult(int, String[], int[])
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
-
-    //Flag indicating whether a requested permission has been denied after returning in {@link #onRequestPermissionsResult(int, String[], int[])}.
-    private boolean mPermissionDenied = false;
-    private static final LatLng SYDNEY = new LatLng(-33.8683615,151.2103255);
-
-    private GoogleMap mMap;
-
     @Override
     public void onMapReady(GoogleMap map) {
         mMap = map;
@@ -656,12 +652,11 @@ public class StreamActivity
         //enable 3d buildings,
         map.setBuildingsEnabled(true);
 
-
         // Construct a CameraPosition focusing on Sydney and animate the camera to that position.
         CameraPosition cameraPosition = new CameraPosition.Builder()
-                .target(SYDNEY)      // Sets the center of the map to Mountain View
+                .target(SYDNEY)             // Sets the center of the map to Sydney CBD
                 .zoom(16)                   // Sets the zoom
-                .bearing(0)                // Sets the orientation of the camera to east
+                .bearing(0)                 // Sets the orientation of the camera to east
                 .tilt(85)                   // Sets the tilt of the camera to 30 degrees
                 .build();                   // Creates a CameraPosition from the builder
         map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
@@ -669,7 +664,6 @@ public class StreamActivity
 
     //Enables the My Location layer if the fine location permission has been granted.
     private void enableMyLocation() {
-
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             // Permission to access the location is missing.
@@ -689,18 +683,24 @@ public class StreamActivity
         return false;
     }
 
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
-            return;
-        }
-
-        if (PermissionUtils.isPermissionGranted(permissions, grantResults,
-                Manifest.permission.ACCESS_FINE_LOCATION)) {
-            // Enable the my location layer if the permission has been granted.
-            enableMyLocation();
+        switch (requestCode) {
+            case LOCATION_PERMISSION_REQUEST_CODE: {
+                if (PermissionUtils.isPermissionGranted(permissions, grantResults,
+                        Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    // Enable the my location layer if the permission has been granted.
+                    enableMyLocation();
+                }
+            }
+            case WRITE_PERMISSION_REQUEST_CODE: {
+                if (PermissionUtils.isPermissionGranted(permissions, grantResults,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    // Create the storage directory if the permission has been granted.
+                    createStorageDirectory();
+                }
+            }
         }
     }
     /*===================================================

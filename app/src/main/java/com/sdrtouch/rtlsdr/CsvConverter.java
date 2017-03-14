@@ -61,7 +61,6 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
     }
 
     private void convert(String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) throws IOException, ParseException {
-        Log.d("RTL_LOG", "Finding .csv file in directory...");
         String csvFile = findFile(dirName, batchID);
 
         if (!csvFile.equals("NOTFOUND")) { // only proceed when there is a valid csv file
@@ -73,7 +72,6 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
             boolean integrationExists;
 
             //Iterate through entire CSV file
-            Log.d("RTL_LOG", "Iterating through .csv file...");
             while ((line = br.readLine()) != null) {
                 String[] entry = line.split(csvSplitBy); //Use comma-space as separator
                 integrationExists = false;
@@ -155,7 +153,6 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
             SortedSet<String> keys = new TreeSet<>(integrationsList.keySet()); //Sort HashMap by key (unix timestamp)
 
             //Iterate through HashMap to build JSON
-            Log.d("RTL_LOG", "Building JSON file from HashMap...");
             for (String key : keys) {
                 sb.append(integrationsList.get(key)); //Build JSON Body
                 sb.append("]},"); //Close off JSON Array and JSON Object

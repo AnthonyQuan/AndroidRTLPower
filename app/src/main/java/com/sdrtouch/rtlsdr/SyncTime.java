@@ -51,7 +51,6 @@ public class SyncTime extends AsyncTask<Object, Object, Object> {
 
     @Override
     protected void onPostExecute(Object o) {
-        Log.d("RTL_LOG","Synchronisation complete");
         activityContext.beginSpectrumRecording();
     }
 
@@ -70,9 +69,6 @@ public class SyncTime extends AsyncTask<Object, Object, Object> {
 
         //Parse Response
         int responseCode = con.getResponseCode();
-        Log.d("RTL_LOG","Sending 'GET' request to URL: " + url);
-        Log.d("RTL_LOG","Response Code : " + responseCode);
-
         BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
         String inputLine;
         StringBuilder response = new StringBuilder();
