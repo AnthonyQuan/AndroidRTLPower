@@ -167,8 +167,6 @@ public class StreamActivity
         TextView debugLog = (TextView) findViewById(R.id.textView);
         debugLog.setMovementMethod(new ScrollingMovementMethod());
         AsyncTaskTools.execute(new LogCatTask(this));
-
-
     }
     /*===================================================
      * Main Entry Point to App END
@@ -385,10 +383,8 @@ public class StreamActivity
         }
         else {
             Log.d("RTL_LOG","No pressure sensor found. Unable to calculate altitude");
-            StatusTextAltitude.setText("FAILED");
-            isRunning=false;
-            RunNowButton.setText("RUN NOW");
-            return;
+            StatusTextAltitude.setText("NO PRESSURE SENSOR");
+            //altitude will be recorded as zero
         }
         /*===================================================
          * Get Altitude END
