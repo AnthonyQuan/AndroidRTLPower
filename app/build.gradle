@@ -27,8 +27,8 @@ model {
 
         defaultConfig.with {
             applicationId = "marto.rtl_tcp_andro"
-            minSdkVersion.apiLevel    = 12
-            targetSdkVersion.apiLevel =  24
+            minSdkVersion.apiLevel = 12
+            targetSdkVersion.apiLevel = 24
 
         }
 
@@ -67,11 +67,15 @@ model {
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:24.0.0'
     compile 'com.google.android.gms:play-services-location:10.0.1'
     compile 'com.google.android.gms:play-services-maps:10.0.1'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
+    compile 'com.google.firebase:firebase-messaging:10.0.1'
+    testCompile 'junit:junit:4.12'
 }
 
 
+
+
+apply plugin: 'com.google.gms.google-services'
