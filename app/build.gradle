@@ -23,13 +23,12 @@ apply plugin: 'com.android.model.application'
 model {
     android {
         compileSdkVersion = 24
-        buildToolsVersion = "24.0.0"
+        buildToolsVersion = "25.0.2"
 
         defaultConfig.with {
             applicationId = "marto.rtl_tcp_andro"
             minSdkVersion.apiLevel = 12
             targetSdkVersion.apiLevel = 24
-
         }
 
         // retrolambda was not compatible with the latest gradle
@@ -74,8 +73,5 @@ dependencies {
     compile 'com.google.firebase:firebase-messaging:10.0.1'
     testCompile 'junit:junit:4.12'
 }
-
-
-
 
 apply plugin: 'com.google.gms.google-services'
