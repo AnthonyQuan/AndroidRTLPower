@@ -15,7 +15,6 @@ import java.text.SimpleDateFormat;
  */
 
 public class CsvConverter extends AsyncTask<String, Void, Void> {
-
     private String dirName;
     private String batchID;
     private float altitude;
@@ -33,7 +32,6 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
         this.latitude = latitude;
         this.longitude = longitude;
         this.integrationInterval = integrationInterval;
-
     }
 
     @Override
@@ -49,8 +47,7 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
 
     @Override
     protected void onPostExecute(Void v) {
-        if (backgroundProcessingFailed)
-        {
+        if (backgroundProcessingFailed) {
             activityContext.csvConversionFailed();
         }
         else {
@@ -144,7 +141,6 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
                             "{\"" + Integer.toString(frequencyLow + (frequencyStep * 30)) + "\":" + entry[36] + "}," + "{\"" + Integer.toString(frequencyLow + (frequencyStep * 31)) + "\":" + entry[37] + "}," +
                             "{\"" + Integer.toString(frequencyLow + (frequencyStep * 32)) + "\":" + entry[38] + "}]}";
                     String integrationJSON = integrationHeader + valuesHeader + valuesBody;
-
                     integrationsList.put(unix, integrationJSON);
                 }
             }
@@ -171,9 +167,7 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
 
             fr.close();
             br.close();
-        }
-        else
-        {
+        } else {
             backgroundProcessingFailed=true;
         }
     }

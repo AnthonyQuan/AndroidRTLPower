@@ -18,17 +18,16 @@ import java.net.URL;
  * the contents to MongoDB via a URI endpoint.
  */
 
-public class HttpPostRequest extends AsyncTask<String, Void, Object> {
+public class PostSpectrum extends AsyncTask<String, Void, Object> {
     private String dirName;
     private String batchID;
     private StreamActivity activityContext;
     private boolean backgroundProcessingFailed=false;
 
-    public HttpPostRequest(StreamActivity streamActivity, String dirName, String batchID) {
+    public PostSpectrum(StreamActivity streamActivity, String dirName, String batchID) {
         this.activityContext = streamActivity;
         this.dirName = dirName;
         this.batchID = batchID;
-
     }
 
     @Override
@@ -75,7 +74,6 @@ public class HttpPostRequest extends AsyncTask<String, Void, Object> {
         wr.close();
 
         //Parse Response
-        int responseCode = con.getResponseCode();
         BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
         String inputLine;
         StringBuffer response = new StringBuffer();
@@ -116,12 +114,11 @@ public class HttpPostRequest extends AsyncTask<String, Void, Object> {
 
     @Override
     protected void onPostExecute(Object result) {
-        if(backgroundProcessingFailed) {
+        if (backgroundProcessingFailed) {
             activityContext.uploadFailed();
         }
         else {
             activityContext.uploadSucessful();
-
         }
     }
 }

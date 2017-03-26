@@ -57,7 +57,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.firebase.iid.FirebaseInstanceId;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -99,8 +98,8 @@ public class StreamActivity
 
     //Google Play Services GPS variable(s)
     private GoogleApiClient GoogleApiClient;
-    private double latitude = 0.000000;
-    private double longitude = 0.000000;
+    private double latitude = 0;
+    private double longitude = 0;
 
     //Google Maps variable(s)
     private GoogleMap mMap;
@@ -130,7 +129,6 @@ public class StreamActivity
     //C methods
     public native void staphRTLPOWER();
     public native void resetRTLPOWER();
-    public native int readExecutionFinished();
     /*===================================================
      * Global Variables END
      *===================================================*/
@@ -235,6 +233,10 @@ public class StreamActivity
         //on connected is automatically called when Google Play Services API is connected
         Log.d("RTL_LOG","Connected to Google Play Services");
         getGPSLocation();
+        if (latitude != 0 && longitude != 0)
+            AsyncTaskTools.execute(new PostToken(latitude, longitude));
+        else
+            Log.d("RTL_LOG","Location not valid!");
     }
 
     private void getGPSLocation() {
@@ -302,8 +304,8 @@ public class StreamActivity
             // Check if we have write permission
             int writePermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
             if (writePermission == PackageManager.PERMISSION_GRANTED) {
-                Log.d("RTL_LOG","Write access permission granted");
                 if (!isRunning) { //program is not running, lets start it
+                    Log.d("RTL_LOG","Write access permission granted");
                     isRunning = true;
                     runProgram();
                 } else { //program is already running, lets stop it
@@ -312,9 +314,7 @@ public class StreamActivity
                 }
             }
             else
-            {
                 createStorageDirectory();
-            }
         }
         else {
             //GPS and/or Internet connection is not enabled, show a dialog box
@@ -346,8 +346,6 @@ public class StreamActivity
                     WRITE_PERMISSION_REQUEST_CODE);
             //PermissionUtils.requestPermission(this, WRITE_PERMISSION_REQUEST_CODE, Manifest.permission.WRITE_EXTERNAL_STORAGE, true);
         } else {
-            // Access to write to external storage is granted to the app.
-            Log.d("RTL_LOG","Write access permission granted");
             //Create Working Directory
             if (!dirName.exists())
                 dirName.mkdirs();
@@ -405,8 +403,13 @@ public class StreamActivity
         //Once the connect method is called below, the listeners
         //onConnected, onConnectionFailed and onConnectionSuspended will be registered
         //Those methods will allow me to get the Lat and Lng coordinates
-        if (GoogleApiClient.isConnected())
+        if (GoogleApiClient.isConnected()) {
             getGPSLocation(); //already connected to google play services (e.g. from second scan)
+            if (latitude != 0 && longitude != 0)
+                AsyncTaskTools.execute(new PostToken(latitude, longitude));
+            else
+                Log.d("RTL_LOG","Location not valid!");
+        }
         else
             GoogleApiClient.connect();
 
@@ -417,8 +420,8 @@ public class StreamActivity
          * Get Sync Time then begin SpectrumRecording START
          *===================================================*/
         StatusTextRecord.setText("SYNCHRONISING");
-        AsyncTaskTools.execute(new SyncTime(StreamActivity.this));
-        //When SyncTime finishes, the app continues execution at method beginSpectrumRecording()
+        AsyncTaskTools.execute(new GetSyncTime(StreamActivity.this));
+        //When GetSyncTime finishes, the app continues execution at method beginSpectrumRecording()
         /*===================================================
          * Get Sync Time then begin Spectrum Recording END
          *===================================================*/
@@ -496,7 +499,7 @@ public class StreamActivity
      *===================================================*/
 
     /*===================================================
-     * Continue Execution here after calling AsyncTaskTools.execute(new SyncTime(StreamActivity.this)); START
+     * Continue Execution here after calling AsyncTaskTools.execute(new GetSyncTime(StreamActivity.this)); START
      *===================================================*/
     public void beginSpectrumRecording() {
         if (isRunning) {
@@ -524,7 +527,7 @@ public class StreamActivity
         return sdf.format(date);
     }
     /*===================================================
-     * Continue Execution here after calling AsyncTaskTools.execute(new SyncTime(StreamActivity.this)); END
+     * Continue Execution here after calling AsyncTaskTools.execute(new GetSyncTime(StreamActivity.this)); END
      *===================================================*/
 
     /*===================================================
@@ -563,7 +566,7 @@ public class StreamActivity
      *===================================================*/
     public void beginUploadtoMongoDB() {
         if (isRunning)
-            AsyncTaskTools.execute(new HttpPostRequest(StreamActivity.this, dirName.toString(), batchID));
+            AsyncTaskTools.execute(new PostSpectrum(StreamActivity.this, dirName.toString(), batchID));
         else
             stopSpectrumUpload();
     }
@@ -579,7 +582,7 @@ public class StreamActivity
      *===================================================*/
 
     /*===================================================
-     * Continue Execution here after calling AsyncTaskTools.execute(new HttpPostRequest START
+     * Continue Execution here after calling AsyncTaskTools.execute(new PostSpectrum START
      *===================================================*/
     public void uploadSucessful() {
         if (isRunning) {
@@ -599,7 +602,7 @@ public class StreamActivity
         RunNowButton.setText("RUN NOW");
     }
     /*===================================================
-     * Continue Execution here after calling AsyncTaskTools.execute(new HttpPostRequest END
+     * Continue Execution here after calling AsyncTaskTools.execute(new PostSpectrum END
      *===================================================*/
 
     /*===================================================
@@ -622,8 +625,7 @@ public class StreamActivity
             fragmentTransaction.commit();
             //Show debug log
             debugLog.setVisibility(View.VISIBLE);
-        }
-        else {
+        } else {
             //Change label of button
             toggleButton.setText("View Detailed Debug Info");
             //Hide debug log
@@ -643,7 +645,6 @@ public class StreamActivity
     @Override
     public void onMapReady(GoogleMap map) {
         mMap = map;
-
         mMap.setOnMyLocationButtonClickListener(this);
         enableMyLocation();
         //enable 3d buildings,

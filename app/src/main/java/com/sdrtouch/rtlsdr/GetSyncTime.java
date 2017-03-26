@@ -13,37 +13,30 @@ import java.net.URL;
  * Created by Jackie on 15/02/2017.
  */
 
-public class SyncTime extends AsyncTask<Object, Object, Object> {
+public class GetSyncTime extends AsyncTask<Object, Object, Object> {
     private StreamActivity activityContext;
 
-    public SyncTime(StreamActivity activityContext) {
+    public GetSyncTime(StreamActivity activityContext) {
         this.activityContext = activityContext;
     }
 
     @Override
     protected Object doInBackground(Object... arg0) {
         try {
-            long executionTime = getSyncTime();
+            long executionTime = executeRequest();
             long currentTime = System.currentTimeMillis();
             Log.d("RTL_LOG", "Sync time: " + executionTime);
             Log.d("RTL_LOG", "Current time: " + currentTime);
             Log.d("RTL_LOG", "Sleeping for: " + Long.toString((executionTime - currentTime)) + " milliseconds");
-            for (int i=0; i<30;i++)
-            {
+            for (int i=0; i<30;i++) {
                 if (activityContext.isRunning)
-                {
                     Thread.sleep(Math.abs((executionTime - currentTime))/30);
-                }
                 else
-                {
                     return null;
-                }
             }
             Log.d("RTL_LOG", "Sleeping complete");
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
         return null;
@@ -54,7 +47,7 @@ public class SyncTime extends AsyncTask<Object, Object, Object> {
         activityContext.beginSpectrumRecording();
     }
 
-    private long getSyncTime() throws IOException {
+    private long executeRequest() throws IOException {
         Log.d("RTL_LOG","Synchronising with server");
         String url = "http://ec2-13-55-90-132.ap-southeast-2.compute.amazonaws.com/synctime";
 
@@ -68,7 +61,6 @@ public class SyncTime extends AsyncTask<Object, Object, Object> {
         //con.setRequestProperty("Accept", "*/*");
 
         //Parse Response
-        int responseCode = con.getResponseCode();
         BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
         String inputLine;
         StringBuilder response = new StringBuilder();
