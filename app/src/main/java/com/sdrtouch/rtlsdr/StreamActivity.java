@@ -57,6 +57,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.firebase.iid.FirebaseInstanceId;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -298,13 +299,21 @@ public class StreamActivity
     public void OnClickRunNow(View view) {
         //ensure GPS and Internet is on before proceeding
         if (gpsIsEnabled() && internetIsEnabled()) {
-            if (!isRunning) { //program is not running, lets start it
-                isRunning = true;
-                runProgram();
+            // Check if we have write permission
+            int writePermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            if (writePermission == PackageManager.PERMISSION_GRANTED) {
+                Log.d("RTL_LOG","Write access permission granted");
+                if (!isRunning) { //program is not running, lets start it
+                    isRunning = true;
+                    runProgram();
+                } else { //program is already running, lets stop it
+                    isRunning = false;
+                    stopProgram();
+                }
             }
-            else { //program is already running, lets stop it
-                isRunning = false;
-                stopProgram();
+            else
+            {
+                createStorageDirectory();
             }
         }
         else {
@@ -331,8 +340,11 @@ public class StreamActivity
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
             // Permission to write to external storage is missing.
-            PermissionUtils.requestPermission(this, WRITE_PERMISSION_REQUEST_CODE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE, true);
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    WRITE_PERMISSION_REQUEST_CODE);
+            //PermissionUtils.requestPermission(this, WRITE_PERMISSION_REQUEST_CODE, Manifest.permission.WRITE_EXTERNAL_STORAGE, true);
         } else {
             // Access to write to external storage is granted to the app.
             Log.d("RTL_LOG","Write access permission granted");
@@ -359,12 +371,6 @@ public class StreamActivity
         StatusTextUpload.setText("");
         CheckboxUpload.setChecked(false);
         Log.d("RTL_LOG","Run button pressed");
-        // Check if we have write permission
-        int writePermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (writePermission != PackageManager.PERMISSION_GRANTED)
-            createStorageDirectory();
-        else
-            Log.d("RTL_LOG","Write access permission granted");
         // reset RTL power flag(s)
         resetRTLPOWER();
         /*===================================================
@@ -404,15 +410,6 @@ public class StreamActivity
         else
             GoogleApiClient.connect();
 
-        //Terminate execution if write access is NOT granted
-        writePermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (writePermission != PackageManager.PERMISSION_GRANTED) {
-            Log.d("RTL_LOG", "Write permissions were not granted. Unable to continue execution");
-            isRunning = false;
-            RunNowButton.setText("RUN NOW");
-            StatusTextGPS.setText("");
-            return;
-        }
         /*===================================================
          * Get GPS END
          *===================================================*/
