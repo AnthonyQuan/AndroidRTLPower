@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- refer to https://developers.google.com/android/guides/google-services-plugin for mapping between json file and this xml-->
     <string name="google_app_id" translatable="false">1:266612658866:android:1bef5bcbb38ff4fb</string>
     <string name="gcm_defaultSenderId" translatable="false">266612658866</string>
     <string name="default_web_client_id" translatable="false">266612658866-cjhmb5ccsu4otkf2hg6vgln7fde1ma8o.apps.googleusercontent.com</string>

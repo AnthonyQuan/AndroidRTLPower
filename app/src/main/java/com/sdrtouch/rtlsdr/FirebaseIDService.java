@@ -14,6 +14,8 @@ public class FirebaseIDService extends FirebaseInstanceIdService{
     public void onTokenRefresh() {
         String refreshToken = FirebaseInstanceId.getInstance().getToken();
         Log.d("RTL_LOG", "Firebase Token: " + refreshToken);
+
+        //Upload token to mongoDB
     }
 
 }
