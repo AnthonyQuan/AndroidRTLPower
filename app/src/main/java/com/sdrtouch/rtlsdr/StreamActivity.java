@@ -177,6 +177,7 @@ public class StreamActivity
     @Override
     protected void onStart() {
         super.onStart();
+        GoogleApiClient.connect();
     }
 
     @Override
