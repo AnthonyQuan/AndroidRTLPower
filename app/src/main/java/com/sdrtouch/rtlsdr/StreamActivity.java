@@ -252,26 +252,30 @@ public class StreamActivity
                     REQUEST_LOCATION);
         }
 
-        //get me the last location
-        if (isRunning) {
-            Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
-            if (mLastLocation != null) {
-                //set global vars (for easier retrieval later)
-                latitude = mLastLocation.getLatitude();
-                Log.d("RTL_LOG", "latitude: " + latitude);
-                longitude = mLastLocation.getLongitude();
-                Log.d("RTL_LOG", "longitude: " + longitude);
+        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
+        if (mLastLocation != null) {
+            //set global vars (for easier retrieval later)
+            latitude = mLastLocation.getLatitude();
+            Log.d("RTL_LOG", "latitude: " + latitude);
+            longitude = mLastLocation.getLongitude();
+            Log.d("RTL_LOG", "longitude: " + longitude);
+            if (isRunning) {
                 //Update status text
                 StatusTextGPS.setText("DONE");
                 CheckboxGPS.setChecked(true);
-            } else {
-                Log.d("RTL_LOG", "Location cannot be retrieved");
+            }
+        } else {
+            Log.d("RTL_LOG", "Location cannot be retrieved");
+            if (isRunning) {
                 //Update status text
                 StatusTextGPS.setText("FAILED");
                 isRunning = false;
                 RunNowButton.setText("RUN NOW");
             }
         }
+
+        //get me the last location
+
     }
 
     @Override
