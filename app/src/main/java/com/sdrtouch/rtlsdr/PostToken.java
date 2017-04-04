@@ -20,10 +20,12 @@ import java.util.Date;
  */
 
 public class PostToken extends AsyncTask<String, Void, Object> {
+    private String androidID;
     private double latitude;
     private double longitude;
 
-    public PostToken(double latitude, double longitude) {
+    public PostToken(String androidID, double latitude, double longitude) {
+        this.androidID = androidID;
         this.latitude = latitude;
         this.longitude = longitude;
     }
@@ -63,8 +65,9 @@ public class PostToken extends AsyncTask<String, Void, Object> {
         //Request Body
         con.setDoOutput(true);
         DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-        wr.writeBytes("{\"token\":\"" + refreshToken + "\",\"latitude\":\"" + latitude +
-                "\",\"longitude\":\"" + longitude + "\",\"date\":\"" + date + "\"}");
+        wr.writeBytes("{\"token\":\"" + refreshToken + "\",\"deviceID\":\"" + androidID
+                + "\",\"latitude\":\"" + latitude + "\",\"longitude\":\"" + longitude
+                + "\",\"date\":\"" + date + "\"}");
         wr.flush();
         wr.close();
 

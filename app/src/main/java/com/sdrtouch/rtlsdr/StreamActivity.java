@@ -33,6 +33,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.Settings.Secure;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentManager;
@@ -63,6 +64,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import marto.rtl_tcp_andro.R;
+
+import static java.security.AccessController.getContext;
 
 public class StreamActivity
         extends
@@ -234,8 +237,10 @@ public class StreamActivity
         //on connected is automatically called when Google Play Services API is connected
         Log.d("RTL_LOG","Connected to Google Play Services");
         getGPSLocation();
-        if (latitude != 0 && longitude != 0)
-            AsyncTaskTools.execute(new PostToken(latitude, longitude));
+        if (latitude != 0 && longitude != 0) {
+            String android_id = Secure.getString(this.getContentResolver(), Secure.ANDROID_ID);
+            AsyncTaskTools.execute(new PostToken(android_id, latitude, longitude));
+        }
         else
             Log.d("RTL_LOG","Location not valid!");
     }
@@ -273,9 +278,7 @@ public class StreamActivity
                 RunNowButton.setText("RUN NOW");
             }
         }
-
         //get me the last location
-
     }
 
     @Override
@@ -410,8 +413,10 @@ public class StreamActivity
         //Those methods will allow me to get the Lat and Lng coordinates
         if (GoogleApiClient.isConnected()) {
             getGPSLocation(); //already connected to google play services (e.g. from second scan)
-            if (latitude != 0 && longitude != 0)
-                AsyncTaskTools.execute(new PostToken(latitude, longitude));
+            if (latitude != 0 && longitude != 0) {
+                String android_id = Secure.getString(this.getContentResolver(), Secure.ANDROID_ID);
+                AsyncTaskTools.execute(new PostToken(android_id, latitude, longitude));
+            }
             else
                 Log.d("RTL_LOG","Location not valid!");
         }
