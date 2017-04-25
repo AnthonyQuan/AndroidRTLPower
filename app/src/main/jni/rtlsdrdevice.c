@@ -730,7 +730,17 @@ int verbose_offset_tuning(rtlsdr_dev_t *dev)
     return r;
 }
 
-
+int verbose_auto_gain(rtlsdr_dev_t *dev)
+{
+    int r;
+    r = rtlsdr_set_tuner_gain_mode(dev, 0);
+    if (r != 0) {
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "WARNING: Failed to set tuner gain.\n");
+    } else {
+        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "Tuner gain set to automatic.\n");
+    }
+    return r;
+}
 
 int verbose_gain_set(rtlsdr_dev_t *dev, int gain)
 {
@@ -1790,10 +1800,10 @@ int mainCOPIED(int argc, char **argv)
 
     /* Set the tuner gain */
     if (gain == AUTO_GAIN) {
-//        verbose_auto_gain(dev);
+        verbose_auto_gain(dev);
     } else {
         gain = nearest_gain(dev, gain);
-  //      verbose_gain_set(dev, gain);
+        verbose_gain_set(dev, gain);
     }
 
     verbose_ppm_set(dev, ppm_error);
