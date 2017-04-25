@@ -67,7 +67,10 @@ public class RTLPower extends AsyncTask<Object, Object, Object> {
                     passFDandDeviceName(fd,path); //method to pass to c
                     //By Now, RTL SDR is connected, Call C method with hard coded arguments to start recording
                     //when the time comes, replace hardcoded arguments with proper ones
-                    String[] argv = new String[]{"-f", "88M:108M:125k", "-1", activityContext.dirName + "/" + batchID + ".csv"};
+                    // RTL SDR can tune from 24MHz to 1700MHz
+                    // From http://www.acma.gov.au/sitecore/content/Home/Industry/Spectrum/Spectrum-projects/700-MHz-band/700-mhz-auction-commences it looks like we should have intervals of 5MHz
+                    //String[] argv = new String[]{"-f", "88M:108M:125k", "-1", activityContext.dirName + "/" + batchID + ".csv"};
+                    String[] argv = new String[]{"-f", "30M:1700M:5M", "-1", activityContext.dirName + "/" + batchID + ".csv"};
                     //Log.d("RTL_LOG", "Passing arguments: " + Arrays.toString(argv));
                     beginRTLPower(argv);
                     deviceConnection.close();
