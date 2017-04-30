@@ -10,7 +10,7 @@ import android.support.v4.app.NotificationCompat;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
-import marto.rtl_tcp_andro.R;
+import utsCapstone.SpectrumRecorder.R;
 
 /**
  * Created by Anthony on 26/03/2017.

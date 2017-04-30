@@ -46,7 +46,7 @@ import com.sdrtouch.tools.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-import marto.rtl_tcp_andro.R;
+import utsCapstone.SpectrumRecorder.R;
 
 public class DeviceOpenActivity extends FragmentActivity implements DeviceDialog.OnDeviceDialog {
 	

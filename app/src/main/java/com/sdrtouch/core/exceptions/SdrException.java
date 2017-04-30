@@ -2,7 +2,7 @@ package com.sdrtouch.core.exceptions;
 
 import com.sdrtouch.tools.StrRes;
 
-import marto.rtl_tcp_andro.R;
+import utsCapstone.SpectrumRecorder.R;
 
 public class SdrException extends Exception {
 	

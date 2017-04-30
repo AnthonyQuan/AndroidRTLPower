@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import marto.rtl_tcp_andro.R;
+import utsCapstone.SpectrumRecorder.R;
 
 /**
  * Creates various dialogs

@@ -26,7 +26,7 @@ model {
         buildToolsVersion = "25.0.2"
 
         defaultConfig.with {
-            applicationId = "marto.rtl_tcp_andro"
+            applicationId = "utsCapstone.SpectrumRecorder"
             minSdkVersion.apiLevel = 12
             targetSdkVersion.apiLevel = 24
         }

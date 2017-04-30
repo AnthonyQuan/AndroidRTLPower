@@ -32,7 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import marto.rtl_tcp_andro.R;
+import utsCapstone.SpectrumRecorder.R;
 
 public class RtlSdrDeviceProvider implements SdrDeviceProvider {
     @Override

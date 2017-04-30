@@ -20,7 +20,7 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="marto.rtl_tcp_andro"
+          package="utsCapstone.SpectrumRecorder"
           android:installLocation="internalOnly">
 
     <uses-permission android:name="android.permission.INTERNET" />

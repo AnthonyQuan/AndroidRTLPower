@@ -11,7 +11,7 @@ import com.sdrtouch.tools.UsbPermissionObtainer;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import marto.rtl_tcp_andro.R;
+import utsCapstone.SpectrumRecorder.R;
 
 
 public class RTLPower extends AsyncTask<Object, Object, Object> {

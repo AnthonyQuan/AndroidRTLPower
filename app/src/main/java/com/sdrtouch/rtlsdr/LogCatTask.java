@@ -8,7 +8,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import marto.rtl_tcp_andro.R;
+import utsCapstone.SpectrumRecorder.R;
 
 public class LogCatTask extends AsyncTask<Void, String, Void> {
     private AtomicBoolean run = new AtomicBoolean(true);
