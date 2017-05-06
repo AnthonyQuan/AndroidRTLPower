@@ -21,6 +21,7 @@
 package com.sdrtouch.rtlsdr;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
@@ -169,6 +170,10 @@ public class StreamActivity
         TextView debugLog = (TextView) findViewById(R.id.textView);
         debugLog.setMovementMethod(new ScrollingMovementMethod());
         AsyncTaskTools.execute(new LogCatTask(this));
+
+        // use this to start and trigger the location service
+        Intent locationServiceIntent= new Intent(this, LocationService.class);
+        startService(locationServiceIntent);
     }
     /*===================================================
      * Main Entry Point to App END
@@ -180,7 +185,6 @@ public class StreamActivity
     @Override
     protected void onStart() {
         super.onStart();
-        GoogleApiClient.connect();
     }
 
     @Override
@@ -194,11 +198,16 @@ public class StreamActivity
     }
 
     @Override
-    protected void onStop() {
-        if (GoogleApiClient.isConnected())
+    protected void onDestroy() {
+        if (GoogleApiClient.isConnected()) {
             GoogleApiClient.disconnect();
-        super.onStop();
+        }
+        Intent locationServiceIntent= new Intent(this, LocationService.class);
+
+        stopService(locationServiceIntent);
+        super.onDestroy();
     }
+
     /*===================================================
      * Other Entry and Exit Points to App END
      *===================================================*/
@@ -239,8 +248,8 @@ public class StreamActivity
         getGPSLocation();
         if (latitude != 0 && longitude != 0) {
             String android_id = Secure.getString(this.getContentResolver(), Secure.ANDROID_ID);
-            AsyncTaskTools.execute(new PostToken(android_id, latitude, longitude));
-        }
+        AsyncTaskTools.execute(new PostToken(android_id, latitude, longitude));
+    }
         else
             Log.d("RTL_LOG","Location not valid!");
     }
@@ -256,29 +265,30 @@ public class StreamActivity
                     PERMISSIONS_LOCATION,
                     REQUEST_LOCATION);
         }
-
-        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
-        if (mLastLocation != null) {
-            //set global vars (for easier retrieval later)
-            latitude = mLastLocation.getLatitude();
-            Log.d("RTL_LOG", "latitude: " + latitude);
-            longitude = mLastLocation.getLongitude();
-            Log.d("RTL_LOG", "longitude: " + longitude);
-            if (isRunning) {
-                //Update status text
-                StatusTextGPS.setText("DONE");
-                CheckboxGPS.setChecked(true);
-            }
-        } else {
-            Log.d("RTL_LOG", "Location cannot be retrieved");
-            if (isRunning) {
-                //Update status text
-                StatusTextGPS.setText("FAILED");
-                isRunning = false;
-                RunNowButton.setText("RUN NOW");
+        else {
+            //get me the last location
+            Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(GoogleApiClient);
+            if (mLastLocation != null) {
+                //set global vars (for easier retrieval later)
+                latitude = mLastLocation.getLatitude();
+                Log.d("RTL_LOG", "latitude: " + latitude);
+                longitude = mLastLocation.getLongitude();
+                Log.d("RTL_LOG", "longitude: " + longitude);
+                if (isRunning) {
+                    //Update status text
+                    StatusTextGPS.setText("DONE");
+                    CheckboxGPS.setChecked(true);
+                }
+            } else {
+                Log.d("RTL_LOG", "Location cannot be retrieved");
+                if (isRunning) {
+                    //Update status text
+                    StatusTextGPS.setText("FAILED");
+                    isRunning = false;
+                    RunNowButton.setText("RUN NOW");
+                }
             }
         }
-        //get me the last location
     }
 
     @Override
