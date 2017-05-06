@@ -398,7 +398,8 @@ public class StreamActivity
         else {
             Log.d("RTL_LOG","No pressure sensor found. Unable to calculate altitude");
             StatusTextAltitude.setText("NO PRESSURE SENSOR");
-            //altitude will be recorded as zero
+            //altitude will be recorded as 99999
+            altitude = 99999;
         }
         /*===================================================
          * Get Altitude END
