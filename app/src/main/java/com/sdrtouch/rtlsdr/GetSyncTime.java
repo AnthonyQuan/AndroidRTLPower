@@ -9,14 +9,10 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-/**
- * Created by Jackie on 15/02/2017.
- */
-
-public class GetSyncTime extends AsyncTask<Object, Object, Object> {
+class GetSyncTime extends AsyncTask<Object, Object, Object> {
     private StreamActivity activityContext;
 
-    public GetSyncTime(StreamActivity activityContext) {
+    GetSyncTime(StreamActivity activityContext) {
         this.activityContext = activityContext;
     }
 
@@ -28,7 +24,7 @@ public class GetSyncTime extends AsyncTask<Object, Object, Object> {
             Log.d("RTL_LOG", "Sync time: " + executionTime);
             Log.d("RTL_LOG", "Current time: " + currentTime);
             Log.d("RTL_LOG", "Sleeping for: " + Long.toString((executionTime - currentTime)) + " milliseconds");
-            for (int i=0; i<30;i++) {
+            for (int i = 0; i < 30; i++) {
                 if (activityContext.isRunning)
                     Thread.sleep(Math.abs((executionTime - currentTime))/30);
                 else

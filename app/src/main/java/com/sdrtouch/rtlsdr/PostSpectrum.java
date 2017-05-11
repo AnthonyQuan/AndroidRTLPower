@@ -18,13 +18,13 @@ import java.net.URL;
  * the contents to MongoDB via a URI endpoint.
  */
 
-public class PostSpectrum extends AsyncTask<String, Void, Object> {
+class PostSpectrum extends AsyncTask<String, Void, Object> {
     private String dirName;
     private String batchID;
     private StreamActivity activityContext;
     private boolean backgroundProcessingFailed=false;
 
-    public PostSpectrum(StreamActivity streamActivity, String dirName, String batchID) {
+    PostSpectrum(StreamActivity streamActivity, String dirName, String batchID) {
         this.activityContext = streamActivity;
         this.dirName = dirName;
         this.batchID = batchID;
@@ -41,9 +41,7 @@ public class PostSpectrum extends AsyncTask<String, Void, Object> {
                 String jsonData = convertStreamToString(fis);
                 fis.close();
                 executeRequest(jsonData);
-            }
-            else
-            {
+            } else {
                 backgroundProcessingFailed=true;
             }
         } catch (Exception e) {
@@ -94,9 +92,8 @@ public class PostSpectrum extends AsyncTask<String, Void, Object> {
         File jsonFile = null;
 
         for (File file : files) {
-            if (file.getName().equals(batchID + ".json")) {
+            if (file.getName().equals(batchID + ".json"))
                 jsonFile = file;
-            }
         }
         return jsonFile;
     }
@@ -114,11 +111,9 @@ public class PostSpectrum extends AsyncTask<String, Void, Object> {
 
     @Override
     protected void onPostExecute(Object result) {
-        if (backgroundProcessingFailed) {
+        if (backgroundProcessingFailed)
             activityContext.uploadFailed();
-        }
-        else {
+        else
             activityContext.uploadSucessful();
-        }
     }
 }

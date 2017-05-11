@@ -3,10 +3,17 @@ package com.sdrtouch.rtlsdr;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import java.util.*;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Created by Jackie on 28/11/2016.
@@ -14,7 +21,7 @@ import java.text.SimpleDateFormat;
  * which is more suitable for ingest into MongoDB.
  */
 
-public class CsvConverter extends AsyncTask<String, Void, Void> {
+class CsvConverter extends AsyncTask<String, Void, Void> {
     private String dirName;
     private String batchID;
     private float altitude;
@@ -24,7 +31,7 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
     private StreamActivity activityContext;
     private Boolean backgroundProcessingFailed=false;
 
-    public CsvConverter(StreamActivity streamActivity, String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) {
+    CsvConverter(StreamActivity streamActivity, String dirName, String batchID, float altitude, double latitude, double longitude, String integrationInterval) {
         this.activityContext = streamActivity;
         this.dirName = dirName;
         this.batchID = batchID;
@@ -165,9 +172,8 @@ public class CsvConverter extends AsyncTask<String, Void, Void> {
         String csvFileName = "NOTFOUND";
 
         for (File file : files) {
-            if (file.getName().equals(batchID + ".csv")) {
+            if (file.getName().equals(batchID + ".csv"))
                 csvFileName = dirName + "/" + file.getName();
-            }
         }
         return csvFileName;
     }

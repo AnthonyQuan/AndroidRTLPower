@@ -39,16 +39,16 @@ public class RtlSdrApplication extends Application {
         IS_PLATFORM_SUPPORTED = isPlatformSupported;
     }
 
-    private static Context context;
+    private Context context;
 
     public void onCreate() {
         super.onCreate();
 
         StrRes.res = getResources();
-        RtlSdrApplication.context = getApplicationContext();
+        context = getApplicationContext();
     }
 
-    public static Context getAppContext() {
-        return RtlSdrApplication.context;
+    public Context getAppContext() {
+        return context;
     }
 }

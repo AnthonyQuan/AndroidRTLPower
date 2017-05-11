@@ -73,7 +73,8 @@ public class RtlSdrDevice extends SdrDevice {
     }
 
     private int openSessionAndGetFd() throws ExecutionException, InterruptedException {
-        UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(RtlSdrApplication.getAppContext(), usbDevice).get();
+        RtlSdrApplication rtlSdrApp = new RtlSdrApplication();
+        UsbDeviceConnection deviceConnection = UsbPermissionObtainer.obtainFdFor(rtlSdrApp.getAppContext(), usbDevice).get();
         if (deviceConnection == null) throw new RuntimeException("Could not get a connection");
         int fd = deviceConnection.getFileDescriptor();
         Log.appendLine("Opening fd "+fd);

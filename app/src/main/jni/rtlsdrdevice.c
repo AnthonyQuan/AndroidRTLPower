@@ -1603,7 +1603,6 @@ void csv_dbm(struct tuning_state *ts)
 		((double)ts->rate * (double)ts->samples));}
     dbm  = 10 * log10(dbm);
     fprintf(file, "%.2f\n", dbm);
-    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "==== CSV row finished ====");
     for (i=0; i<len; i++) {
         ts->avg[i] = 0L;
     }

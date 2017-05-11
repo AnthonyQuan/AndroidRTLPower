@@ -14,14 +14,14 @@ import android.widget.Toast;
 /**
  * Utility class for access to runtime permissions for google maps functionality
  */
-public abstract class PermissionUtils {
+abstract class PermissionUtils {
 
     /**
      * Requests the fine location permission. If a rationale with an additional explanation should
      * be shown to the user, displays a dialog that triggers the request.
      */
-    public static void requestPermission(AppCompatActivity activity, int requestId,
-                                         String permission, boolean finishActivity) {
+    static void requestPermission(AppCompatActivity activity, int requestId,
+                                  String permission, boolean finishActivity) {
         if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
             // Display a dialog with rationale.
             PermissionUtils.RationaleDialog.newInstance(requestId, finishActivity)
@@ -39,12 +39,11 @@ public abstract class PermissionUtils {
      *
      * @see android.support.v4.app.ActivityCompat.OnRequestPermissionsResultCallback
      */
-    public static boolean isPermissionGranted(String[] grantPermissions, int[] grantResults,
-                                              String permission) {
+    static boolean isPermissionGranted(String[] grantPermissions, int[] grantResults,
+                                       String permission) {
         for (int i = 0; i < grantPermissions.length; i++) {
-            if (permission.equals(grantPermissions[i])) {
+            if (permission.equals(grantPermissions[i]))
                 return grantResults[i] == PackageManager.PERMISSION_GRANTED;
-            }
         }
         return false;
     }

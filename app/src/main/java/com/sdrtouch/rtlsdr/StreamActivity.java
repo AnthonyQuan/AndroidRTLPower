@@ -21,8 +21,8 @@
 package com.sdrtouch.rtlsdr;
 
 import android.Manifest;
-import android.content.Intent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -66,8 +66,6 @@ import java.util.Date;
 
 import utsCapstone.SpectrumRecorder.R;
 
-import static java.security.AccessController.getContext;
-
 public class StreamActivity
         extends
             AppCompatActivity
@@ -99,6 +97,7 @@ public class StreamActivity
     //Variables required for recording the spectrum
     private String batchID = null;
     public File dirName = new File(Environment.getExternalStorageDirectory() + File.separator + "RTL_POWER");
+    private LogCatTask logCat;
 
     //Google Play Services GPS variable(s)
     private GoogleApiClient GoogleApiClient;
@@ -169,7 +168,8 @@ public class StreamActivity
         //Setup Debug Log to automatically update
         TextView debugLog = (TextView) findViewById(R.id.textView);
         debugLog.setMovementMethod(new ScrollingMovementMethod());
-        AsyncTaskTools.execute(new LogCatTask(this));
+        logCat = new LogCatTask(this);
+        AsyncTaskTools.execute(logCat);
 
         // use this to start and trigger the location service
         Intent locationServiceIntent= new Intent(this, LocationService.class);
@@ -199,11 +199,10 @@ public class StreamActivity
 
     @Override
     protected void onDestroy() {
-        if (GoogleApiClient.isConnected()) {
+        if (GoogleApiClient.isConnected())
             GoogleApiClient.disconnect();
-        }
-        Intent locationServiceIntent= new Intent(this, LocationService.class);
-
+        Intent locationServiceIntent = new Intent(this, LocationService.class);
+        logCat.cancel(true);
         stopService(locationServiceIntent);
         super.onDestroy();
     }
@@ -248,10 +247,10 @@ public class StreamActivity
         getGPSLocation();
         if (latitude != 0 && longitude != 0) {
             String android_id = Secure.getString(this.getContentResolver(), Secure.ANDROID_ID);
-        AsyncTaskTools.execute(new PostToken(android_id, latitude, longitude));
-    }
-        else
+            AsyncTaskTools.execute(new PostToken(android_id, latitude, longitude));
+        } else {
             Log.d("RTL_LOG","Location not valid!");
+        }
     }
 
     private void getGPSLocation() {
@@ -331,8 +330,9 @@ public class StreamActivity
                     stopProgram();
                 }
             }
-            else
+            else {
                 createStorageDirectory();
+            }
         }
         else {
             //GPS and/or Internet connection is not enabled, show a dialog box
@@ -428,11 +428,12 @@ public class StreamActivity
                 String android_id = Secure.getString(this.getContentResolver(), Secure.ANDROID_ID);
                 AsyncTaskTools.execute(new PostToken(android_id, latitude, longitude));
             }
-            else
+            else {
                 Log.d("RTL_LOG","Location not valid!");
-        }
-        else
+            }
+        } else {
             GoogleApiClient.connect();
+        }
 
         /*===================================================
          * Get GPS END
@@ -531,8 +532,9 @@ public class StreamActivity
             batchID = getBatchID(); //Set batch ID to current datetime
             AsyncTaskTools.execute(new RTLPower(StreamActivity.this, batchID));
         }
-        else
+        else {
             stopSpectrumRecording();
+        }
     }
 
     public void stopSpectrumRecording() {
@@ -561,8 +563,9 @@ public class StreamActivity
             StatusTextUpload.setText("RUNNING");
             AsyncTaskTools.execute(new CsvConverter(StreamActivity.this, dirName.toString(), batchID, altitude, latitude, longitude, "10s"));
         }
-        else
+        else {
             stopSpectrumRecording();
+        }
     }
 
     public void recordSpectrumFailed() {
@@ -612,8 +615,9 @@ public class StreamActivity
             isRunning = false;
             RunNowButton.setText("RUN NOW");
         }
-        else
+        else {
             stopSpectrumUpload();
+        }
     }
 
     public void uploadFailed() {
@@ -712,8 +716,7 @@ public class StreamActivity
                     // Enable the my location layer if the permission has been granted.
                     enableMyLocation();
                 }
-            }
-            case WRITE_PERMISSION_REQUEST_CODE: {
+            } case WRITE_PERMISSION_REQUEST_CODE: {
                 if (PermissionUtils.isPermissionGranted(permissions, grantResults,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                     // Create the storage directory if the permission has been granted.

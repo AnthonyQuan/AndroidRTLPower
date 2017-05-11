@@ -85,9 +85,8 @@ public class LocationMapActivity extends AppCompatActivity implements
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
+        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE)
             return;
-        }
 
         if (PermissionUtils.isPermissionGranted(permissions, grantResults,
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
@@ -116,5 +115,4 @@ public class LocationMapActivity extends AppCompatActivity implements
         PermissionUtils.PermissionDeniedDialog
                 .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
-
 }

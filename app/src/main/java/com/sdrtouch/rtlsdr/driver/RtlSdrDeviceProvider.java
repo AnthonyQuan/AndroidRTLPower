@@ -37,7 +37,8 @@ import utsCapstone.SpectrumRecorder.R;
 public class RtlSdrDeviceProvider implements SdrDeviceProvider {
     @Override
     public List<SdrDevice> listDevices(Context ctx, boolean forceRoot) {
-        Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(RtlSdrApplication.getAppContext(), R.xml.device_filter);
+        RtlSdrApplication rtlSdrApp = new RtlSdrApplication();
+        Set<UsbDevice> availableUsbDevices = UsbPermissionHelper.getAvailableUsbDevices(rtlSdrApp.getAppContext(), R.xml.device_filter);
         List<SdrDevice> devices = new LinkedList<>();
         for (UsbDevice usbDevice : availableUsbDevices) devices.add(new RtlSdrDevice(usbDevice));
         return devices;

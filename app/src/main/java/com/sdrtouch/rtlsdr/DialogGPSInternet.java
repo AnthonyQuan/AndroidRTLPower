@@ -6,10 +6,6 @@ import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
 
-/**
- * Created by Anthony on 13/03/2017.
- */
-
 public class DialogGPSInternet extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {

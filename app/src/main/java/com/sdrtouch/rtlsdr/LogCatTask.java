@@ -10,11 +10,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import utsCapstone.SpectrumRecorder.R;
 
-public class LogCatTask extends AsyncTask<Void, String, Void> {
+class LogCatTask extends AsyncTask<Void, String, Void> {
     private AtomicBoolean run = new AtomicBoolean(true);
     private TextView logView;
 
-    public LogCatTask(Activity myContext)
+    LogCatTask(Activity myContext)
     {
         logView = (TextView) myContext.findViewById(R.id.textView);
     }

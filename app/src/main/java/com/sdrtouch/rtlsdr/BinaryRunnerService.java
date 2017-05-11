@@ -78,7 +78,8 @@ public class BinaryRunnerService extends Service {
 			statusCallbacks.clear();
 			stopSelf();
 		} else {
-			if (isRunning) Log.appendLine("Restarting");
+			if (isRunning)
+				Log.appendLine("Restarting");
 			thisSdrDevice = pair.first;
 			SdrTcpArguments sdrTcpArguments = pair.second;
 			Log.appendLine("Arguments "+ sdrTcpArguments);
@@ -99,11 +100,10 @@ public class BinaryRunnerService extends Service {
 		
 		@Override
 		public void onClosed(Throwable e) {
-			if (e == null) {
+			if (e == null)
 				Log.appendLine("Successfully closed service");
-			} else {
+			else
 				Log.appendLine("Closed service due to exception "+e.getClass().getSimpleName()+": "+e.getMessage());
-			}
 			
 			stopForeground(true);
 			thisSdrDevice = null;
@@ -140,10 +140,6 @@ public class BinaryRunnerService extends Service {
 		}
 	}
 	
-	public boolean isRunning() {
-		return isRunning;
-	}
-	
 	private void announceRunning(SdrDevice sdrDevice) {
 		Log.appendLine("Starting service with device %s", sdrDevice.getName());
 		isRunning = true;
@@ -160,28 +156,20 @@ public class BinaryRunnerService extends Service {
 		}
 	}
 		
-	public class LocalBinder extends Binder {
-		public BinaryRunnerService getService() {
-            return BinaryRunnerService.this;
-        }
-		
-		public void registerCallback(StatusCallback callback) {
-			synchronized (statusCallbacks) {
-				statusCallbacks.add(callback);
-				if (isRunning) callback.onServerRunning(); else callback.onServerNotRunning();
-			}
-		}
-		
-		public void startWithDevice(SdrDevice sdrDevice, SdrTcpArguments sdrTcpArguments) {
+	class LocalBinder extends Binder {
+
+		void startWithDevice(SdrDevice sdrDevice, SdrTcpArguments sdrTcpArguments) {
 			Check.isNotNull(sdrDevice);
 			Check.isNotNull(sdrTcpArguments);
 			addWork(sdrDevice, sdrTcpArguments);
-			if (!isRunning) startService(new Intent(getApplicationContext(), BinaryRunnerService.class));
-			else closeService();
+			if (!isRunning)
+				startService(new Intent(getApplicationContext(), BinaryRunnerService.class));
+			else
+				closeService();
 		}
     }
 	
-	public interface StatusCallback {
+	interface StatusCallback {
 		void onServerRunning();
 		void onServerNotRunning();
 	}

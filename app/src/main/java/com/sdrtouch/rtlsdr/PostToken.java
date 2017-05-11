@@ -19,12 +19,12 @@ import java.util.Date;
  * POSTing the contents to MongoDB via a URI endpoint.
  */
 
-public class PostToken extends AsyncTask<String, Void, Object> {
+class PostToken extends AsyncTask<String, Void, Object> {
     private String androidID;
     private double latitude;
     private double longitude;
 
-    public PostToken(String androidID, double latitude, double longitude) {
+    PostToken(String androidID, double latitude, double longitude) {
         this.androidID = androidID;
         this.latitude = latitude;
         this.longitude = longitude;

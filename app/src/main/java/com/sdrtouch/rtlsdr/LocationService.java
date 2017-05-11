@@ -11,8 +11,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
-import android.support.annotation.IntDef;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
@@ -28,13 +26,6 @@ public class LocationService extends Service implements com.google.android.gms.c
     private GoogleApiClient googleApiClient;
     private double latitude = 0;
     private double longitude = 0;
-
-    //Location Permissions
-    private static String[] PERMISSIONS_LOCATION = {
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-    };
-
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -108,9 +99,8 @@ public class LocationService extends Service implements com.google.android.gms.c
     @Override
     public void onDestroy() {
         Log.d("RTL_LOG", "Location Service destroyed");
-        if (googleApiClient.isConnected()) {
+        if (googleApiClient.isConnected())
             googleApiClient.disconnect();
-        }
         super.onDestroy();
     }
 }

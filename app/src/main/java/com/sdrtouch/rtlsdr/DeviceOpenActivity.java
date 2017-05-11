@@ -134,7 +134,8 @@ public class DeviceOpenActivity extends FragmentActivity implements DeviceDialog
 	@Override
 	protected void onStop() {
 		super.onStop();
-		if (isBound) unbindService(mConnection);
+		if (isBound)
+			unbindService(mConnection);
 		
 		sdrDevice = null;
 		sdrTcpArguments = null;
@@ -144,9 +145,8 @@ public class DeviceOpenActivity extends FragmentActivity implements DeviceDialog
 
 		final FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
 		final Fragment prev = getSupportFragmentManager().findFragmentByTag("dialog");
-		if (prev != null) {
+		if (prev != null)
 			ft.remove(prev);
-		}
 		ft.addToBackStack(null);
 
 		// Create and show the dialog.
@@ -202,14 +202,17 @@ public class DeviceOpenActivity extends FragmentActivity implements DeviceDialog
 		final Intent data = new Intent();
 		data.putExtra("marto.rtl_tcp_andro.RtlTcpExceptionId", id);
 		
-		if (second_id != null) data.putExtra("detailed_exception_code", second_id);
-		if (msg != null) data.putExtra("detailed_exception_message", msg);
+		if (second_id != null)
+			data.putExtra("detailed_exception_code", second_id);
+
+		if (msg != null)
+			data.putExtra("detailed_exception_message", msg);
 		
-		if (getParent() == null) {
+		if (getParent() == null)
 		    setResult(RESULT_CANCELED, data);
-		} else {
+		else
 		    getParent().setResult(RESULT_CANCELED, data);
-		}
+
 		finish();
 	}
 	
@@ -218,6 +221,7 @@ public class DeviceOpenActivity extends FragmentActivity implements DeviceDialog
 			finishWithError();
 			return;
 		}
+
 		if (e instanceof SdrException) {
 			final SdrException rtlexception = (SdrException) e;
 			finishWithError(rtlexception.getReason(), rtlexception.getId(), rtlexception.getMessage());
@@ -257,11 +261,10 @@ public class DeviceOpenActivity extends FragmentActivity implements DeviceDialog
 		final Intent data = new Intent();
 		data.putExtra("supportedTcpCommands", sdrDevice.getSupportedCommands());
 		
-		if (getParent() == null) {
+		if (getParent() == null)
 		    setResult(RESULT_OK, data);
-		} else {
+		else
 		    getParent().setResult(RESULT_OK, data);
-		}
 		
 		Log.appendLine("Device was open. Closing the prompt activity.");
 		finish();

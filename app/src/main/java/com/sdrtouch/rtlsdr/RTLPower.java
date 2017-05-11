@@ -13,12 +13,10 @@ import java.util.concurrent.ExecutionException;
 
 import utsCapstone.SpectrumRecorder.R;
 
-
-public class RTLPower extends AsyncTask<Object, Object, Object> {
+class RTLPower extends AsyncTask<Object, Object, Object> {
     private StreamActivity activityContext;
     private Boolean backgroundProcessingFailed=false;
     private String batchID;
-
 
     //Loads the C library
     static {
@@ -30,7 +28,7 @@ public class RTLPower extends AsyncTask<Object, Object, Object> {
     public native void passFDandDeviceName(int fd_, String path_);
     public native int checkForFailure();
 
-    public RTLPower(StreamActivity activityContext, String BatchID) {
+    RTLPower(StreamActivity activityContext, String BatchID) {
         this.activityContext = activityContext;
         this.batchID = BatchID;
     }
@@ -74,12 +72,10 @@ public class RTLPower extends AsyncTask<Object, Object, Object> {
                     //Log.d("RTL_LOG", "Passing arguments: " + Arrays.toString(argv));
                     beginRTLPower(argv);
                     deviceConnection.close();
-                }
-                catch (ExecutionException ee) {
+                } catch (ExecutionException ee) {
                     Log.d("RTL_LOG", "Unable to enumerate the available USB devices. Execution Exception.");
                     backgroundProcessingFailed=true;
-                }
-                catch (InterruptedException ie) {
+                } catch (InterruptedException ie) {
                     Log.d("RTL_LOG", "Unable to enumerate the available USB devices. Interrupted Exception");
                     backgroundProcessingFailed=true;
                 }
@@ -89,26 +85,18 @@ public class RTLPower extends AsyncTask<Object, Object, Object> {
                 backgroundProcessingFailed=true;
                 return null;
         }
-
-
         return null;
     }
 
     @Override
     protected void onPostExecute(Object result) {
         //check if the c methods passed
-        if (checkForFailure()==1)
-        {
+        if (checkForFailure() == 1)
             backgroundProcessingFailed=true;
-        }
 
-        if (backgroundProcessingFailed) {
+        if (backgroundProcessingFailed)
             activityContext.recordSpectrumFailed();
-        }
-        else {
+        else
             activityContext.beginCSVConversion();
-        }
     }
-
-
 }
