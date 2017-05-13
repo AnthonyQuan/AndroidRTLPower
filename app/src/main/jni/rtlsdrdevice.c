@@ -361,14 +361,6 @@ Java_com_sdrtouch_rtlsdr_RTLPower_beginRTLPower( JNIEnv* env, jobject object, jo
         (*env)->DeleteLocalRef(env, string );
     }
 
-    //debug logs
-    __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "ArgCount in C: %i", ArgCount);
-    for( i = 0; i < ArgCount; ++i ) {
-        __android_log_print(ANDROID_LOG_DEBUG, "RTL_LOG", "ArgVar in C: %s", argv[i + 1]);
-    }
-
-
-
     // call the legacy "main" function
     executionFinished = 0;
     mainCOPIED( ArgCount + 1, argv );
