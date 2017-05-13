@@ -278,6 +278,14 @@ public class StreamActivity
                     StatusTextGPS.setText("DONE");
                     CheckboxGPS.setChecked(true);
                 }
+                // Construct a CameraPosition focusing on newly derived location and animate the camera to that position.
+                CameraPosition cameraPosition = new CameraPosition.Builder()
+                        .target(new LatLng(latitude,longitude))             // Sets the center of the map to GPS coordinates
+                        .zoom(16)                   // Sets the zoom
+                        .bearing(0)                 // Sets the orientation of the camera to east
+                        .tilt(85)                   // Sets the tilt of the camera to 30 degrees
+                        .build();                   // Creates a CameraPosition from the builder
+                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
             } else {
                 Log.d("RTL_LOG", "Location cannot be retrieved");
                 if (isRunning) {
@@ -673,7 +681,7 @@ public class StreamActivity
         mMap.setOnMyLocationButtonClickListener(this);
         enableMyLocation();
         //enable 3d buildings,
-        map.setBuildingsEnabled(true);
+        mMap.setBuildingsEnabled(true);
 
         // Construct a CameraPosition focusing on Sydney and animate the camera to that position.
         CameraPosition cameraPosition = new CameraPosition.Builder()
@@ -682,7 +690,7 @@ public class StreamActivity
                 .bearing(0)                 // Sets the orientation of the camera to east
                 .tilt(85)                   // Sets the tilt of the camera to 30 degrees
                 .build();                   // Creates a CameraPosition from the builder
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
 
     //Enables the My Location layer if the fine location permission has been granted.
@@ -697,6 +705,7 @@ public class StreamActivity
             mMap.setMyLocationEnabled(true);
         }
     }
+
 
     @Override
     public boolean onMyLocationButtonClick() {
