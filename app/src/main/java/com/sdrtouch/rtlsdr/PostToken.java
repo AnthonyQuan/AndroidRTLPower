@@ -50,7 +50,7 @@ class PostToken extends AsyncTask<String, Void, Object> {
 
     private void executeRequest(String date, String refreshToken) throws Exception {
         String responseData;
-        String url = "http://ec2-13-55-90-132.ap-southeast-2.compute.amazonaws.com/addrecord/device";
+        String url = "http://spectrumdatabase.org/addrecord/device";
 
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();

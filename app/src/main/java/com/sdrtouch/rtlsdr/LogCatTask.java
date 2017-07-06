@@ -8,7 +8,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import UTS.SpectrumRecorder.R;
+import uts.SpectrumRecorder.R;
 
 class LogCatTask extends AsyncTask<Void, String, Void> {
     private AtomicBoolean run = new AtomicBoolean(true);

@@ -46,7 +46,7 @@ import com.sdrtouch.tools.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-import UTS.SpectrumRecorder.R;
+import uts.SpectrumRecorder.R;
 
 public class DeviceOpenActivity extends FragmentActivity implements DeviceDialog.OnDeviceDialog {
 	

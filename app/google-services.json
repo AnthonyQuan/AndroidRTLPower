@@ -8,9 +8,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:614190187072:android:aad9a673193e1fbe",
+        "mobilesdk_app_id": "1:614190187072:android:134c1db779daaa98",
         "android_client_info": {
-          "package_name": "UTS.SpectrumRecorder"
+          "package_name": "uts.SpectrumRecorder"
         }
       },
       "oauth_client": [

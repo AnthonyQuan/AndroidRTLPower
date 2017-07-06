@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import UTS.SpectrumRecorder.R;
+import uts.SpectrumRecorder.R;
 
 /**
  * Creates various dialogs

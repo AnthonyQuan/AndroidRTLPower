@@ -64,7 +64,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import UTS.SpectrumRecorder.R;
+import uts.SpectrumRecorder.R;
 
 public class StreamActivity
         extends

@@ -52,7 +52,7 @@ class PostSpectrum extends AsyncTask<String, Void, Object> {
 
     private void executeRequest(String jsonData) throws Exception {
         String responseData;
-        String url = "http://ec2-13-55-90-132.ap-southeast-2.compute.amazonaws.com/addrecord/spectrum";
+        String url = "http://spectrumdatabase.org/addrecord/spectrum";
 
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();

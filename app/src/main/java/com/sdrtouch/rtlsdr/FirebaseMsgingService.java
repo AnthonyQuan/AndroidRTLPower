@@ -9,7 +9,7 @@ import android.support.v4.app.NotificationCompat;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
-import UTS.SpectrumRecorder.R;
+import uts.SpectrumRecorder.R;
 
 public class FirebaseMsgingService extends FirebaseMessagingService{
     @Override

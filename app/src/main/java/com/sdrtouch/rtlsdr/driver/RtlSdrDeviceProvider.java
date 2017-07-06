@@ -32,7 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import UTS.SpectrumRecorder.R;
+import uts.SpectrumRecorder.R;
 
 public class RtlSdrDeviceProvider implements SdrDeviceProvider {
     @Override

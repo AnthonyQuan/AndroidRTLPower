@@ -45,7 +45,7 @@ class GetSyncTime extends AsyncTask<Object, Object, Object> {
 
     private long executeRequest() throws IOException {
         Log.d("RTL_LOG","Synchronising with server");
-        String url = "http://ec2-13-55-90-132.ap-southeast-2.compute.amazonaws.com/synctime";
+        String url = "http://spectrumdatabase.org/synctime";
 
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
