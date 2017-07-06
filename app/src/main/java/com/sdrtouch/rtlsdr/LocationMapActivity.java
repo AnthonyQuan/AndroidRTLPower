@@ -14,7 +14,7 @@ import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 
-import utsCapstone.SpectrumRecorder.R;
+import UTS.SpectrumRecorder.R;
 
 /**
  * This shows how to use a custom location source.

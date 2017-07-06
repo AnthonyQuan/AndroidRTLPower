@@ -31,7 +31,7 @@ import com.sdrtouch.core.devices.SdrDevice;
 
 import java.util.List;
 
-import utsCapstone.SpectrumRecorder.R;
+import UTS.SpectrumRecorder.R;
 
 public class DeviceDialog extends DialogFragment {
 	private final static String SDR_DEVICE = "sdrDevice_%d";

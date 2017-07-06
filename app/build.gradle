@@ -26,7 +26,7 @@ model {
         buildToolsVersion = "25.0.2"
 
         defaultConfig.with {
-            applicationId = "utsCapstone.SpectrumRecorder"
+            applicationId = "UTS.SpectrumRecorder"
             minSdkVersion.apiLevel = 12
             targetSdkVersion.apiLevel = 24
         }

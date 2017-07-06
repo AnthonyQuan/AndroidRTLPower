@@ -11,7 +11,7 @@ import com.sdrtouch.tools.UsbPermissionObtainer;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import utsCapstone.SpectrumRecorder.R;
+import UTS.SpectrumRecorder.R;
 
 class RTLPower extends AsyncTask<Object, Object, Object> {
     private StreamActivity activityContext;

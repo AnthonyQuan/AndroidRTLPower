@@ -20,7 +20,7 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="utsCapstone.SpectrumRecorder"
+          package="UTS.SpectrumRecorder"
           android:installLocation="internalOnly">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -92,7 +92,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyAnOpZGfZGLxTRNpS1ubdLe63Z4kq6K3J0"/>
+            android:value="AIzaSyCNtJdJbvYr5scEDvtJaBnGZ-sbtdsybhA"/>
 
     </application>
 </manifest>

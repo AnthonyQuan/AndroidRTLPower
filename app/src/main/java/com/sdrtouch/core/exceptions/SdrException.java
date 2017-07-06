@@ -2,7 +2,7 @@ package com.sdrtouch.core.exceptions;
 
 import com.sdrtouch.tools.StrRes;
 
-import utsCapstone.SpectrumRecorder.R;
+import UTS.SpectrumRecorder.R;
 
 public class SdrException extends Exception {
 	
